@@ -1,0 +1,3 @@
+include environments*.txt
+include LICENSE.txt
+include README.md

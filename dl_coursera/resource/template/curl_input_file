@@ -1,0 +1,11 @@
+{% macro foo(dl_task) %}
+url = "{{ dl_task['url']|_esc }}"
+output = "{{ dl_task['filename']|_esc }}"
+{% endmacro %}
+
+--create-dirs
+--globoff
+
+{% for dl_task in dl_tasks -%}
+{{ foo(dl_task) }}
+{%- endfor %}

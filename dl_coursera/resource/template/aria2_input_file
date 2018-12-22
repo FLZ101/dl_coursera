@@ -1,0 +1,10 @@
+
+{% for dl_task in dl_tasks %}
+{{ dl_task['url'] }}
+    dir={{ dl_task['filename']|_dirname }}
+    out={{ dl_task['filename']|_basename }}
+    allow-overwrite=true
+    always-resume=true
+    auto-file-renaming=false
+    continue=true
+{% endfor %}
