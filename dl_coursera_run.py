@@ -33,7 +33,7 @@ def _file_txt_download_input_file(outdir, slug, how):
     return os.path.join(outdir, '%s.download.%s_input_file.txt' % (slug, how))
 
 
-def crawl(email, password, slug, isSpec, outdir, n_worker):
+def crawl(email, password, cookies, slug, isSpec, outdir, n_worker):
     file_pkl = _file_pkl_crawl(outdir, slug)
     if os.path.exists(file_pkl):
         with open(file_pkl, 'rb') as ifs:
@@ -41,7 +41,7 @@ def crawl(email, password, slug, isSpec, outdir, n_worker):
 
     with TaskScheduler() as ts, requests.Session() as sess:
         ts.start(n_worker=n_worker)
-        crawler = Crawler(ts=ts, sess=sess, email=email, password=password)
+        crawler = Crawler(ts=ts, sess=sess, email=email, password=password, cookies=cookies)
         soc = crawler.crawl(slug=slug, isSpec=isSpec)
 
     with open(file_pkl, 'wb') as ofs:
@@ -114,8 +114,10 @@ def main():
         )
     )
     parser.add_argument('--version', action='version', version='%%(prog)s %s' % dl_coursera.app_version)
-    parser.add_argument('--email', required=True)
-    parser.add_argument('--password', required=True)
+    parser.add_argument('--email')
+    parser.add_argument('--password')
+    parser.add_argument('--cookies',
+        help='path of the file which contains cookies in the Mozilla `cookies.txt` file format')
     parser.add_argument('--slug', required=True,
         help='slug of a course or a specializtion (with @--isSpec)')
     parser.add_argument('--isSpec', action='store_true',
@@ -149,7 +151,7 @@ def main():
 
     os.makedirs(args['outdir'], exist_ok=True)
 
-    soc = crawl(args['email'], args['password'], args['slug'],
+    soc = crawl(args['email'], args['password'], args['cookies'], args['slug'],
                 args['isSpec'], args['outdir'], args['n_worker'])
 
     dl_tasks = gather_dl_tasks(args['outdir'], soc)

@@ -1,6 +1,7 @@
 import pickle
 import os
 import logging
+from http.cookiejar import MozillaCookieJar
 
 from .define import *
 
@@ -13,7 +14,7 @@ PRIO_COURSE_MATERIAL = 'C'
 
 
 class Crawler:
-    def __init__(self, *, ts, sess, email, password):
+    def __init__(self, *, ts, sess, email, password, cookies):
         self._ts = ts
 
         def attach(func):
@@ -22,11 +23,16 @@ class Crawler:
 
         @attach
         def login():
-            resp = sess.get(URL_ROOT)
-            resp = sess.post(URL_LOGIN(resp.cookies['CSRF3-Token']),
-                             data={'email': email, 'password': password})
+            if cookies:
+                _ = MozillaCookieJar()
+                _.load(cookies)
+                sess.cookies = _
+            else:
+                resp = sess.get(URL_ROOT)
+                resp = sess.post(URL_LOGIN(resp.cookies['CSRF3-Token']),
+                                 data={'email': email, 'password': password})
 
-            assert resp.status_code == 200
+                assert resp.status_code == 200
 
         @attach
         @ts.register_task(
@@ -170,8 +176,8 @@ class Crawler:
                 typeName = _['typeName']
                 if typeName == 'cml':
                     cml = CML(_['definition']['value'])
-                    assetIDs = cml.get_assetIDs()
-                    assets = crawl_assets(assetIDs)
+                    assets, assetIDs = cml.get_assets()
+                    assets += crawl_assets(assetIDs)
                     html = cml.to_html(assets=assets)
 
                     supplement['items'].append(CourseMaterialSupplementItemCML(html=html, assets=assets))

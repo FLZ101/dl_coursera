@@ -13,7 +13,6 @@ A simple, fast, and reliable Coursera crawling & downloading tool
 
 ```
 $ pip install dl_coursera
-
 $ dl_coursera --version
 ```
 
@@ -21,10 +20,11 @@ $ dl_coursera --version
 
 ```
 $ dl_coursera --help
-usage: dl_coursera [-h] [--version] --email EMAIL --password PASSWORD --slug
-                   SLUG [--isSpec] [--n-worker N_WORKER] [--outdir OUTDIR]
-                   --how {builtin,curl,aria2,aria2-rpc,uget}
-                   [--generate-input-file] [--aria2-rpc-url ARIA2_RPC_URL]
+usage: dl_coursera [-h] [--version] [--email EMAIL] [--password PASSWORD]
+                   [--cookies COOKIES] --slug SLUG [--isSpec]
+                   [--n-worker N_WORKER] [--outdir OUTDIR] --how
+                   {builtin,curl,aria2,aria2-rpc,uget} [--generate-input-file]
+                   [--aria2-rpc-url ARIA2_RPC_URL]
                    [--aria2-rpc-secret ARIA2_RPC_SECRET]
 
 A simple, fast, and reliable Coursera crawling & downloading tool
@@ -34,6 +34,8 @@ optional arguments:
   --version             show program's version number and exit
   --email EMAIL
   --password PASSWORD
+  --cookies COOKIES     path of the file which contains cookies in the Mozilla
+                        `cookies.txt` file format
   --slug SLUG           slug of a course or a specializtion (with @--isSpec)
   --isSpec              indicate that @slug is slug of a specialization
   --n-worker N_WORKER   the number of threads used to crawl webpages. Default:
@@ -72,73 +74,101 @@ Navigate to homepage of that course/specialization, you can see its slug at the 
 
 ![](0.png)
 
-### Examples
+### How to get the *cookies.txt* file
 
-* download a course using the builtin downloader
+Sign in to [Coursera](https://www.coursera.org/), then use a browser extension to export cookies as *cookies.txt*. The *cookies.txt* will expire in about one month, so you do not need to do this so frequently.
 
-  ```shell
-  $ dl_coursera --email XXXXXX --password XXXXXX --slug parallel-programming-in-java --outdir ppij --how builtin
-  ```
+#### Chrome
 
-* download a course using curl
+You can use the [cookies.txt](https://chrome.google.com/webstore/detail/cookiestxt/njabckikapfpffapmjgojcnbfjonfjfg) extension.
 
-  ```shell
-  $ dl_coursera --email XXXXXX --password XXXXXX --slug parallel-programming-in-java --outdir ppij --how curl
-  ```
+![](3.png)
 
-  or
+#### Firefox
 
-  ```shell
-  $ dl_coursera --email XXXXXX --password XXXXXX --slug parallel-programming-in-java --outdir ppij --how curl --generate-input-file
+You can use the [Export Cookies](https://addons.mozilla.org/en-US/firefox/addon/export-cookies-txt/?src=search) extension.
 
-  $ curl --config ppij/parallel-programming-in-java.download.curl_input_file.txt
-  ```
+![](4.png)
 
-* download a course using aria2
+## Examples
 
-  ```shell
-  $ dl_coursera --email XXXXXX --password XXXXXX --slug parallel-programming-in-java --outdir ppij --how aria2
-  ```
+> (**2019/08/30**) Since Coursera has changed its login API, you should not use `--email` and `--password` anymore, use `--cookies` instead. More specifically, use
+>
+> ```
+> $ dl_coursera --cookies path/of/cookies.txt ......
+> ```
+>
+> rather than
+>
+> ```
+> $ dl_coursera --email XXXXXX --password XXXXXX ......
+> ```
 
-  or
+### using the builtin downloader
 
-  ```shell
-  $ dl_coursera --email XXXXXX --password XXXXXX --slug parallel-programming-in-java --outdir ppij --how aria2 --generate-input-file
+```
+$ dl_coursera --email XXXXXX --password XXXXXX --slug parallel-programming-in-java --outdir ppij --how builtin
+```
 
-  $ aria2c --input-file ppij/parallel-programming-in-java.download.aria2_input_file.txt
-  ```
+### using curl
 
-* download a course by adding tasks to aria2 through its XML-RPC interface
+```
+$ dl_coursera --email XXXXXX --password XXXXXX --slug parallel-programming-in-java --outdir ppij --how curl
+```
 
-  start aria2 with its XML-RPC interface enabled:
+or
 
-  ```shell
-  $ aria2c --enable-rpc
-  ```
+```
+$ dl_coursera --email XXXXXX --password XXXXXX --slug parallel-programming-in-java --outdir ppij --how curl --generate-input-file
 
-  then type the following command in another terminal:
+$ curl --config ppij/parallel-programming-in-java.download.curl_input_file.txt
+```
 
-  ```shell
-  $ dl_coursera --email XXXXXX --password XXXXXX --slug parallel-programming-in-java --outdir ppij --how aria2-rpc
-  ```
+### using aria2
 
-  *NOTE*: using an aria2 GUI like [webui-aria2](https://github.com/ziahamza/webui-aria2) is highly recommended
+```
+$ dl_coursera --email XXXXXX --password XXXXXX --slug parallel-programming-in-java --outdir ppij --how aria2
+```
 
-  ![](1.png)
+or
 
-* download a course by add tasks to the uGet Download Manager
+```
+$ dl_coursera --email XXXXXX --password XXXXXX --slug parallel-programming-in-java --outdir ppij --how aria2 --generate-input-file
 
-  start uGet:
+$ aria2c --input-file ppij/parallel-programming-in-java.download.aria2_input_file.txt
+```
 
-  ```shell
-  $ uget        # on Windows
-  $ uget-gtk &  # on Linux
-  ```
+### adding tasks to aria2 through its XML-RPC interface
 
-  then type the following command:
+Start aria2 with its XML-RPC interface enabled:
 
-  ```shell
-  $ dl_coursera --email XXXXXX --password XXXXXX --slug parallel-programming-in-java --outdir ppij --how uget
-  ```
+```
+$ aria2c --enable-rpc
+```
 
-  ![](2.png)
+then type the following command in another terminal:
+
+```
+$ dl_coursera --email XXXXXX --password XXXXXX --slug parallel-programming-in-java --outdir ppij --how aria2-rpc
+```
+
+*NOTE*: using an aria2 GUI like [webui-aria2](https://github.com/ziahamza/webui-aria2) is highly recommended
+
+![](1.png)
+
+### adding tasks to the uGet Download Manager
+
+start uGet:
+
+```
+$ uget        # on Windows
+$ uget-gtk &  # on Linux
+```
+
+then type the following command:
+
+```
+$ dl_coursera --email XXXXXX --password XXXXXX --slug parallel-programming-in-java --outdir ppij --how uget
+```
+
+![](2.png)

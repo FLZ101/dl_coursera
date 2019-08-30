@@ -69,20 +69,32 @@ class CML:
         doc = doc.translate(doc.maketrans('\u21b5', ' '))
         self._root = bs4.BeautifulSoup(doc, 'lxml-xml')
 
+        self._assets = None
         self._assetIDs = None
         self._html = None
 
-    def get_assetIDs(self):
-        if self._assetIDs is not None:
-            return self._assetIDs
+    def get_assets(self):
+        if self._assets is None:
+            self._assets = []
+            self._assetIDs = []
+            for e in Traversal(self._root, tagOnly=True):
+                if e.name == 'asset':
+                    self._assetIDs.append(e['id'])
+                elif e.name == 'img':
+                    if e.get('src'):
+                        import uuid
 
-        self._assetIDs = []
-        for e in Traversal(self._root, tagOnly=True):
-            if e.name == 'asset':
-                self._assetIDs.append(e['id'])
-            elif e.name == 'img':
-                self._assetIDs.append(e['assetId'])
-        return self._assetIDs
+                        from .lib.misc import url_basename
+                        from .define import Asset
+
+                        id_ = str(uuid.uuid4()); e['assetId'] = id_
+                        url = e['src']
+                        name = url_basename(url)
+                        self._assets.append(Asset(id_=id_, url=url, name=name))
+                    else:
+                        self._assetIDs.append(e['assetId'])
+
+        return self._assets, self._assetIDs
 
     def to_html(self, *, assets):
         if self._html is not None:
