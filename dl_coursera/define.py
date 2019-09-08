@@ -5,10 +5,6 @@ from .lib.MyDict import MyDict
 URL_ROOT = 'https://www.coursera.org'
 
 
-def URL_LOGIN(csrf3_token):
-    return URL_ROOT + '/api/login/v3Ssr?csrf3-token={}'.format(csrf3_token)
-
-
 def URL_SPEC(slug):
     return URL_ROOT + '/api/onDemandSpecializations.v1?q=slug&slug={}&fields=courseIds,interchangeableCourseIds,launchedAt,logo,memberships,metadata,partnerIds,premiumExperienceVariant,onDemandSpecializationMemberships.v1(suggestedSessionSchedule),onDemandSpecializationSuggestedSchedule.v1(suggestedSessions),partners.v1(homeLink,name),courses.v1(courseProgress,description,membershipIds,startDate,v2Details,vcMembershipIds),v2Details.v1(onDemandSessions,plannedLaunchDate),memberships.v1(grade,vcMembershipId),vcMemberships.v1(certificateCodeWithGrade)&includes=courseIds,memberships,partnerIds,onDemandSpecializationMemberships.v1(suggestedSessionSchedule),courses.v1(courseProgress,membershipIds,v2Details,vcMembershipIds),v2Details.v1(onDemandSessions)'.format(slug)
 
@@ -19,6 +15,14 @@ def URL_COURSE_1(slug):
 
 def URL_COURSE_2(slug):
     return URL_ROOT + '/api/onDemandCourseMaterials.v2/?q=slug&slug={}&includes=modules%2Clessons%2CpassableItemGroups%2CpassableItemGroupChoices%2CpassableLessonElements%2Citems%2Ctracks%2CgradePolicy&fields=moduleIds%2ConDemandCourseMaterialModules.v1(name%2Cslug%2Cdescription%2CtimeCommitment%2ClessonIds%2Coptional%2ClearningObjectives)%2ConDemandCourseMaterialLessons.v1(name%2Cslug%2CtimeCommitment%2CelementIds%2Coptional%2CtrackId)%2ConDemandCourseMaterialPassableItemGroups.v1(requiredPassedCount%2CpassableItemGroupChoiceIds%2CtrackId)%2ConDemandCourseMaterialPassableItemGroupChoices.v1(name%2Cdescription%2CitemIds)%2ConDemandCourseMaterialPassableLessonElements.v1(gradingWeight%2CisRequiredForPassing)%2ConDemandCourseMaterialItems.v2(name%2Cslug%2CtimeCommitment%2CcontentSummary%2CisLocked%2ClockableByItem%2CitemLockedReasonCode%2CtrackId%2ClockedStatus%2CitemLockSummary)%2ConDemandCourseMaterialTracks.v1(passablesCount)&showLockedItems=true'.format(slug)
+
+
+def URL_COURSE_REFERENCES(id_course):
+    return URL_ROOT + '/api/onDemandReferences.v1/?courseId={}&q=courseListed&fields=name%2CshortId%2Cslug%2Ccontent&includes=assets'.format(id_course)
+
+
+def URL_COURSE_REFERENCE(id_course, id_ref):
+    return URL_ROOT + '/api/onDemandReferences.v1/?courseId={}&q=shortId&shortId={}&fields=name%2CshortId%2Cslug%2Ccontent&includes=assets'.format(id_course, id_ref)
 
 
 def URL_LECTURE_1(id_course, id_lecture):
@@ -57,6 +61,18 @@ class Course(MyDict):
         self['name'] = name
         self['slug'] = slug
         self['modules'] = []
+        self['references'] = []
+
+
+class CourseReference(MyDict):
+    def __init__(self, *, id_=None, name=None, slug=None, item=None):
+        super().__init__()
+
+        self['type'] = 'CourseReference'
+        self['id'] = id_
+        self['name'] = name
+        self['slug'] = slug
+        self['item'] = item
 
 
 class CourseMaterialModule(MyDict):

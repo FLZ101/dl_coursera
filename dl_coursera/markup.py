@@ -1,12 +1,15 @@
 import logging
 import copy
+import re
+
+from urllib.parse import quote
 
 import bs4
 
 import jinja2
 
 from .resource import load_resource
-
+from .define import URL_ROOT
 
 def _is_root(e):
     return e.parent is None
@@ -71,12 +74,16 @@ class CML:
 
         self._assets = None
         self._assetIDs = None
+        self._refids = None
+
         self._html = None
 
-    def get_assets(self):
+    def get_resources(self, *, _pat_ref=re.compile(r'%s/learn/[^/]+/resources/([0-9a-zA-Z-]+)' % URL_ROOT)):
         if self._assets is None:
             self._assets = []
             self._assetIDs = []
+            self._refids = []
+
             for e in Traversal(self._root, tagOnly=True):
                 if e.name == 'asset':
                     self._assetIDs.append(e['id'])
@@ -93,8 +100,14 @@ class CML:
                         self._assets.append(Asset(id_=id_, url=url, name=name))
                     else:
                         self._assetIDs.append(e['assetId'])
+                elif e.name == 'a':
+                    match = _pat_ref.match(e['href'])
+                    if match:
+                        _ = match.group(1)
+                        self._refids.append(_)
+                        e['refid'] = _
 
-        return self._assets, self._assetIDs
+        return self._assets, self._assetIDs, self._refids
 
     def to_html(self, *, assets):
         if self._html is not None:
@@ -157,6 +170,7 @@ class CML:
 
                 e1 = bs4.Tag(name='img')
                 e1['src'] = e1['alt'] = _assetName(e0['assetId'])
+                e1['src'] = quote(e1['src'])
 
             elif e0.name == 'heading':
                 e1 = bs4.Tag(name='h%d' % int(e0['level']))
@@ -178,6 +192,8 @@ class CML:
             elif e0.name == 'a':
                 e1 = bs4.Tag(name='a')
                 e1['href'] = e0['href']
+                if e0.get('refid'):
+                    e1['refid'] = e0['refid']
 
             elif e0.name == 'code':
                 e1 = bs4.Tag(name='pre')
@@ -185,10 +201,14 @@ class CML:
 
                 tr.skip_children()
 
-            elif e0.name in ['li', 'strong', 'em', 'table', 'tr', 'td']:
+            elif e0.name in ['li', 'strong', 'em', 'u', 'table', 'tr', 'td']:
                 e1 = bs4.Tag(name=e0.name)
 
+            elif e0.name in ['co-content']:
+                continue
+
             else:
+                logging.warning('[CML] unknown e0.name=%s\n%s' % (e0.name, e0))
                 continue
 
             _add(e0, e1)

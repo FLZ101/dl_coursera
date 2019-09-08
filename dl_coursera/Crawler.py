@@ -1,7 +1,8 @@
 import pickle
 import os
 import logging
-from http.cookiejar import MozillaCookieJar
+
+from http.cookiejar import CookieJar, MozillaCookieJar
 
 from .define import *
 
@@ -14,8 +15,9 @@ PRIO_COURSE_MATERIAL = 'C'
 
 
 class Crawler:
-    def __init__(self, *, ts, sess, email, password, cookies):
+    def __init__(self, *, ts, sess, cookies):
         self._ts = ts
+        self._loggedin = False
 
         def attach(func):
             setattr(self, func.__name__, func)
@@ -23,16 +25,14 @@ class Crawler:
 
         @attach
         def login():
-            if cookies:
-                _ = MozillaCookieJar()
-                _.load(cookies)
-                sess.cookies = _
+            if isinstance(cookies, CookieJar):
+                cj = cookies
             else:
-                resp = sess.get(URL_ROOT)
-                resp = sess.post(URL_LOGIN(resp.cookies['CSRF3-Token']),
-                                 data={'email': email, 'password': password})
+                cj = MozillaCookieJar()
+                cj.load(cookies)
 
-                assert resp.status_code == 200
+            sess.cookies = cj
+            self._loggedin = True
 
         @attach
         @ts.register_task(
@@ -70,7 +70,7 @@ class Crawler:
         @attach
         @ts.register_task(
             priority=PRIO_COURSE, ttl=3,
-            format_kwargs=lambda _: format_dict({'source': _['course']['slug']})
+            format_kwargs=lambda _: format_dict({'cource': _['course']['slug']})
         )
         def crawl_course(*, course):
             resp = sess.get(URL_COURSE_1(course['slug']))
@@ -81,6 +81,8 @@ class Crawler:
             course['id'] = _['id']
 
             assert course['slug'] == _['slug']
+
+            # ------
 
             resp = sess.get(URL_COURSE_2(course['slug']))
             d = resp.json()['linked']
@@ -94,6 +96,10 @@ class Crawler:
                     id2item[_['id']] = CourseMaterialNotebook(id_=_['id'], name=_['name'], slug=_['slug'])
                 elif typeName == 'supplement':
                     id2item[_['id']] = CourseMaterialSupplement(id_=_['id'], name=_['name'], slug=_['slug'])
+                elif typeName in ['exam', 'quiz', 'phasedPeer']:
+                    pass
+                else:
+                    logging.warning('[crawl_course] unknown typeName=%s\n%s' % (typeName, _))
 
             id2lesson = {}
             for _ in d['onDemandCourseMaterialLessons.v1']:
@@ -117,6 +123,10 @@ class Crawler:
                 if len(module['lessons']) > 0:
                     course['modules'].append(module)
 
+            # ------
+
+            crawl_course_references(course=course)
+
             for module in course['modules']:
                 for lesson in module['lessons']:
                     for item in lesson['items']:
@@ -124,6 +134,54 @@ class Crawler:
                             crawl_lecture(course=course, lecture=item)
                         elif item['type'] == 'Supplement':
                             crawl_supplement(course=course, supplement=item)
+
+        def _crawl_course_ref(course, id_ref=None):
+            if not id_ref:
+                resp = sess.get(URL_COURSE_REFERENCES(course['id']))
+            else:
+                resp = sess.get(URL_COURSE_REFERENCE(course['id'], id_ref))
+
+            d = resp.json()
+
+            itemId2ref = {}
+            for _ in d['elements']:
+                ref = CourseReference(id_=_['shortId'], name=_['name'], slug=_['slug'])
+                course['references'].append(ref)
+
+                itemId = _['content']['org.coursera.ondemand.reference.AssetReferenceContent']['assetId']
+                itemId2ref[itemId] = ref
+
+            for _ in d['linked']['openCourseAssets.v1']:
+                typeName = _['typeName']
+                if typeName == 'cml':
+                    cml = CML(_['definition']['value'])
+                    assets, assetIDs, refids = cml.get_resources()
+                    assets += crawl_assets(assetIDs)
+                    html = cml.to_html(assets=assets)
+
+                    itemId2ref[_['id']]['item'] = CourseMaterialSupplementItemCML(html=html, assets=assets)
+
+                    for refid in refids:
+                        crawl_course_reference(course=course, id_ref=refid)
+                else:
+                    logging.warning("[_crawl_course_ref] unknown typeName=%s\n%s" % (typeName, _))
+
+        @ts.register_task(
+            priority=PRIO_COURSE_MATERIAL, ttl=3,
+            format_kwargs=lambda _: format_dict({'cource': _['course']['slug']})
+        )
+        def crawl_course_references(*, course):
+            _crawl_course_ref(course)
+
+        @ts.register_task(
+            priority=PRIO_COURSE_MATERIAL, ttl=3,
+            format_kwargs=lambda _: format_dict({'cource': _['course']['slug']})
+        )
+        def crawl_course_reference(*, course, id_ref):
+            for ref in course['references']:
+                if id_ref == ref['id']:
+                    return
+            _crawl_course_ref(course, id_ref)
 
         @ts.register_task(
             priority=PRIO_COURSE_MATERIAL, ttl=3,
@@ -140,27 +198,28 @@ class Crawler:
                 if url_subtitle is not None:
                     url_subtitle = URL_ROOT + url_subtitle
 
-                url_video = None
-                for reso in ['720p', '540p', '360p']:
-                    url_video = _['sources']['byResolution'].get(reso)
-                    if url_video is not None:
-                        break
-
-                assert url_video is not None
-
+                _ = _['sources']['byResolution']
+                url_video = _[sorted(_.keys())[-1]]  # choose the video with highest resolution
                 url_video = url_video['mp4VideoUrl']
+
                 lecture['videos'].append(Video(url_video=url_video, url_subtitle=url_subtitle))
 
             # lecture assets
             resp = sess.get(URL_LECTURE_2(course['id'], lecture['id']))
             d = resp.json()
 
+            assets = []
             assetIDs = []
             for _ in d['linked']['openCourseAssets.v1']:
                 typeName = _['typeName']
                 if typeName == 'asset':
                     assetIDs.append(_['definition']['assetId'])
-            assets = crawl_assets(assetIDs)
+                elif typeName == 'url':
+                    assets.append(Asset(id_=_['id'], url=_['definition']['url'], name=_['definition']['name']))
+                else:
+                    logging.warning("[crawl_lecture] unknown typeName=%s\n%s" % (typeName, _))
+
+            assets += crawl_assets(assetIDs)
             lecture['assets'] = assets
 
         @ts.register_task(
@@ -176,11 +235,16 @@ class Crawler:
                 typeName = _['typeName']
                 if typeName == 'cml':
                     cml = CML(_['definition']['value'])
-                    assets, assetIDs = cml.get_assets()
+                    assets, assetIDs, refids = cml.get_resources()
                     assets += crawl_assets(assetIDs)
                     html = cml.to_html(assets=assets)
 
                     supplement['items'].append(CourseMaterialSupplementItemCML(html=html, assets=assets))
+
+                    for refid in refids:
+                        crawl_course_reference(course=course, id_ref=refid)
+                else:
+                    logging.warning("[crawl_supplement] unknown typeName=%s\n%s" % (typeName, _))
 
         def crawl_assets(ids):
             if len(ids) == 0:
@@ -194,7 +258,6 @@ class Crawler:
                 id_ = _['id']
                 url = _['url']['url']
                 name = _asset_name(_['name'], _['fileExtension'])
-
                 assets.append(Asset(id_=id_, url=url, name=name))
 
             assert len(assets) == len(ids)
@@ -207,7 +270,9 @@ class Crawler:
             return name
 
     def crawl(self, *, slug, isSpec):
-        self.login()
+        if not self._loggedin:
+            self.login()
+
         if isSpec:
             res = Spec(slug=slug)
             self.crawl_spec(spec=res)

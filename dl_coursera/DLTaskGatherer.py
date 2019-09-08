@@ -1,6 +1,7 @@
 import os
 import zipfile
 import io
+import re
 import logging
 
 from .lib.ExploringTree import ExploringTree
@@ -8,6 +9,8 @@ from .lib.ExploringTree import ExploringTree
 from .markup import render_supplement
 
 from .resource import load_resource
+from .define import URL_ROOT
+from .markup import CML
 
 
 def _shorten_slug(x):
@@ -23,8 +26,7 @@ class DLTaskGatherer:
         self._outdir = outdir
 
         self._et = ExploringTree()
-        with self._et:
-            self._resource_node = self._et.jump('%s/resource' % self._soc['slug'])
+        self._resource_node = self._et.see('%s/resource' % self._soc['slug'])
 
         self._dl_tasks = []
         self._file_tasks = []
@@ -81,8 +83,39 @@ class DLTaskGatherer:
         with self._et:
             self._down(course['slug'], i)
 
+            self._gather_course_references(course)
+
             for _i, module in enumerate(course['modules']):
                 self._gather_module(module, _i)
+
+    def _gather_course_references(self, course):
+        with self._et:
+            self._down('references')
+
+            refid2node = {}
+            for i, ref in enumerate(course['references']):
+                item = ref['item']
+                if item['type'] == 'CML':
+                    refid2node[ref['id']] = self._et.see('%02d@%s.html' % (i + 1, ref['slug']))
+
+            def fn_a(a):
+                _refid = a.get('refid')
+                if not _refid:
+                    return
+
+                _node = refid2node.get(_refid)
+                if not _node:
+                    logging.warning('[fn_a] unknown _refid=%s\n%s' %
+                                    (_refid, {_1: _2.abspath() for _1, _2 in refid2node.items()}))
+                else:
+                    a['href'] = self._et.relpathTo(_node)
+
+            self._fn_a = fn_a
+
+            for i, ref in enumerate(course['references']):
+                item = ref['item']
+                if item['type'] == 'CML':
+                    self._gather_cml(item, i, ref)
 
     def _gather_module(self, module, i):
         _shorten_slug(module)
@@ -133,10 +166,17 @@ class DLTaskGatherer:
                     self._gather_cml(item, _i, supplement)
 
     def _gather_cml(self, cml, i, supplement):
-        _data = render_supplement(content=cml['html'],
-                                  resource_path=self._resource_path(),
-                                  title='%s' % supplement['name']).encode('UTF-8')
-        self._add_file_task(_data, self._see('%02d@.html' % (i + 1)))
+        import bs4
+        html = cml['html']
+        html = bs4.BeautifulSoup(html, 'html.parser')
+        for a in html.find_all('a'):
+            self._fn_a(a)
+        html = str(html)
+
+        data = render_supplement(content=html,
+                                 resource_path=self._resource_path(),
+                                 title='%s' % supplement['name']).encode('UTF-8')
+        self._add_file_task(data, self._see('%02d@%s.html' % (i + 1, supplement['slug'])))
 
         for asset in cml['assets']:
             self._gather_asset(asset)

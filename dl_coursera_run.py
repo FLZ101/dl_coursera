@@ -14,7 +14,9 @@ from dl_coursera.lib.misc import change_ext
 from dl_coursera.lib.TaskScheduler import TaskScheduler
 from dl_coursera.Crawler import Crawler
 from dl_coursera.DLTaskGatherer import DLTaskGatherer
-from dl_coursera.Downloader import *
+from dl_coursera.Downloader import (DownloaderAria2, DownloaderAria2_input_file, DownloaderAria2_rpc,
+                                    DownloaderBuiltin, DownloaderCurl, DownloaderCurl_input_file,
+                                    DownloaderUget)
 
 
 def _file_pkl_crawl(outdir, slug):
@@ -33,7 +35,7 @@ def _file_txt_download_input_file(outdir, slug, how):
     return os.path.join(outdir, '%s.download.%s_input_file.txt' % (slug, how))
 
 
-def crawl(email, password, cookies, slug, isSpec, outdir, n_worker):
+def crawl(cookies, slug, isSpec, outdir, n_worker):
     file_pkl = _file_pkl_crawl(outdir, slug)
     if os.path.exists(file_pkl):
         with open(file_pkl, 'rb') as ifs:
@@ -41,7 +43,7 @@ def crawl(email, password, cookies, slug, isSpec, outdir, n_worker):
 
     with TaskScheduler() as ts, requests.Session() as sess:
         ts.start(n_worker=n_worker)
-        crawler = Crawler(ts=ts, sess=sess, email=email, password=password, cookies=cookies)
+        crawler = Crawler(ts=ts, sess=sess, cookies=cookies)
         soc = crawler.crawl(slug=slug, isSpec=isSpec)
 
     with open(file_pkl, 'wb') as ofs:
@@ -114,10 +116,7 @@ def main():
         )
     )
     parser.add_argument('--version', action='version', version='%%(prog)s %s' % dl_coursera.app_version)
-    parser.add_argument('--email')
-    parser.add_argument('--password')
-    parser.add_argument('--cookies',
-        help='path of the file which contains cookies in the Mozilla `cookies.txt` file format')
+    parser.add_argument('--cookies', help='path of the `cookies.txt`')
     parser.add_argument('--slug', required=True,
         help='slug of a course or a specializtion (with @--isSpec)')
     parser.add_argument('--isSpec', action='store_true',
@@ -128,8 +127,7 @@ def main():
 
     parser.add_argument('--outdir', default='.',
         help='the directory to save files to. Default: `.\'')
-    parser.add_argument('--how', required=True,
-        choices=['builtin', 'curl', 'aria2', 'aria2-rpc', 'uget'],
+    parser.add_argument('--how', choices=['builtin', 'curl', 'aria2', 'aria2-rpc', 'uget'],
         help='''how to download files.
                 builtin (NOT recommonded): use the builtin downloader.
                 curl: invoke the `curl' tool or generate an "input file" for that
@@ -151,8 +149,7 @@ def main():
 
     os.makedirs(args['outdir'], exist_ok=True)
 
-    soc = crawl(args['email'], args['password'], args['cookies'], args['slug'],
-                args['isSpec'], args['outdir'], args['n_worker'])
+    soc = crawl(args['cookies'], args['slug'], args['isSpec'], args['outdir'], args['n_worker'])
 
     dl_tasks = gather_dl_tasks(args['outdir'], soc)
 
@@ -173,6 +170,7 @@ def main():
     elif args['how'] == 'uget':
         DownloaderUget(dl_tasks=dl_tasks).download()
 
+    print('', flush=True, end='')
     print('\nDone :-)')
 
 
