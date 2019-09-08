@@ -101,7 +101,20 @@ def download_input_file(dl_tasks, slug, outdir, how):
     logging.info('new file: %s' % file_txt)
 
 
+def get_latest_version():
+    resp = requests.get('https://pypi.org/pypi/dl-coursera/json')
+    d = resp.json()
+
+    return sorted(d['releases'].keys())[-1]
+
+
 def main():
+    latest_version = get_latest_version()
+    if latest_version != dl_coursera.app_version:
+        print('dl_coursera version %s is obsolete. ' % dl_coursera.app_version +
+              'You can upgrade it to version %s via `pip install -U dl_coursera`.' % latest_version)
+        return
+
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s - %(threadName)s - %(message)s')
 
