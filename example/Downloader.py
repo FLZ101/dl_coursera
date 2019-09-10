@@ -1,9 +1,12 @@
 import os
 import argparse
 import json
+import logging
 
 from dl_coursera.lib.TaskScheduler import TaskScheduler
-from dl_coursera.Downloader import *
+from dl_coursera.Downloader import (DownloaderAria2, DownloaderAria2_input_file, DownloaderAria2_rpc,
+                                    DownloaderBuiltin, DownloaderCurl, DownloaderCurl_input_file,
+                                    DownloaderUget)
 
 
 _urls = ['https://www.jpl.nasa.gov/spaceimages/images/largesize/PIA22569_hires.jpg',
@@ -17,7 +20,7 @@ _urls = ['https://www.jpl.nasa.gov/spaceimages/images/largesize/PIA22569_hires.j
          'https://www.jpl.nasa.gov/spaceimages/images/largesize/PIA22352_hires.jpg',
          'https://www.jpl.nasa.gov/spaceimages/images/largesize/PIA21423_hires.jpg']
 
-_outdir = '__data/example'
+_outdir = '__data/example/downloader'
 
 
 def _file_json_dl_tasks_failed(how):

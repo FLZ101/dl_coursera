@@ -15,11 +15,18 @@ def _esc(s):
     return s.replace('\\', '\\\\').replace('"', '\\"')
 
 
+class DownloaderCanNotWork(Exception):
+    pass
+
+
 class Downloader:
     def __init__(self, *, dl_tasks):
         self._dl_tasks = dl_tasks
 
     def download(self):
+        pass
+
+    def check(self):
         pass
 
 
@@ -34,6 +41,8 @@ class DownloaderTS(Downloader):
         pass
 
     def download(self):
+        self.check()
+
         for _ in self._dl_tasks:
             self._dl(url=_['url'], filename=_['filename'])
 
@@ -52,7 +61,20 @@ class DownloaderBuiltin(DownloaderTS):
                 shutil.copyfileobj(r.raw, ofs)
 
 
-class DownloaderSubprocess(DownloaderTS):
+class CheckExeMixIn:
+    def _exe(self):
+        pass
+
+    def check(self):
+        exe = self._exe()
+        try:
+            subprocess.run([exe, '--version'], stdout=subprocess.DEVNULL,
+                           stderr=subprocess.STDOUT, check=True)
+        except OSError:
+            raise DownloaderCanNotWork('The executable %s is not installed or not in PATH' % exe)
+
+
+class DownloaderSubprocess(CheckExeMixIn, DownloaderTS):
     def _dl(self, *, url, filename):
         subprocess.run(self._cmdline(url, filename), stdout=subprocess.DEVNULL,
                        stderr=subprocess.STDOUT, check=True)
@@ -65,6 +87,9 @@ class DownloaderCurl(DownloaderSubprocess):
     def _cmdline(self, url, filename):
         return ['curl', '--create-dirs', '--globoff', '--url', url, '--output', filename]
 
+    def _exe(self):
+        return 'curl'
+
 
 class DownloaderAria2(DownloaderSubprocess):
     def _cmdline(self, url, filename):
@@ -76,6 +101,9 @@ class DownloaderAria2(DownloaderSubprocess):
                 '-d', os.path.dirname(filename),
                 '-o', os.path.basename(filename),
                 url]
+
+    def _exe(self):
+        return 'aria2c'
 
 
 class DownloaderInput_file(Downloader):
@@ -108,22 +136,26 @@ class DownloaderAria2_input_file(DownloaderInput_file):
         return 'template/aria2_input_file'
 
 
-class DownloaderUget(Downloader):
+class DownloaderUget(CheckExeMixIn, Downloader):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self._uget = 'uget' if sys.platform == 'win32' else 'uget-gtk'
-
     def download(self):
+        self.check()
+
         for _ in self._dl_tasks:
             _url = _['url']
             _filename = _['filename']
-            cmdline = [self._uget, '--quiet',
+            cmdline = [self._exe(), '--quiet',
                        '--folder=%s' % os.path.dirname(_filename),
                        '--filename=%s' % os.path.basename(_filename), _url]
             subprocess.run(cmdline, stdout=subprocess.DEVNULL,
                            stderr=subprocess.STDOUT, check=True)
+
             logging.info('add downloading task: url=%s, filename=%s' % (_url, _filename))
+
+    def _exe(self):
+        return 'uget' if sys.platform == 'win32' else 'uget-gtk'
 
 
 class DownloaderAria2_rpc(Downloader):
@@ -134,6 +166,8 @@ class DownloaderAria2_rpc(Downloader):
         self._secret = secret
 
     def download(self):
+        self.check()
+
         for _ in self._dl_tasks:
             _url = _['url']
             _filename = _['filename']
@@ -148,3 +182,9 @@ class DownloaderAria2_rpc(Downloader):
 
             self._client.aria2.addUri(*_args)
             logging.info('add downloading task: url=%s, filename=%s' % (_url, _filename))
+
+    def check(self):
+        try:
+            self._client.system.listMethods()
+        except ConnectionError:
+            raise DownloaderCanNotWork('fail to connnect to the XML-RPC server')

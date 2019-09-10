@@ -17,6 +17,7 @@ from dl_coursera.DLTaskGatherer import DLTaskGatherer
 from dl_coursera.Downloader import (DownloaderAria2, DownloaderAria2_input_file, DownloaderAria2_rpc,
                                     DownloaderBuiltin, DownloaderCurl, DownloaderCurl_input_file,
                                     DownloaderUget)
+from dl_coursera.define import *
 
 
 def _file_pkl_crawl(outdir, slug):
@@ -35,15 +36,38 @@ def _file_txt_download_input_file(outdir, slug, how):
     return os.path.join(outdir, '%s.download.%s_input_file.txt' % (slug, how))
 
 
-def crawl(cookies, slug, isSpec, outdir, n_worker):
+def crawl(cookies_file, slug, isSpec, outdir, n_worker):
     file_pkl = _file_pkl_crawl(outdir, slug)
     if os.path.exists(file_pkl):
         with open(file_pkl, 'rb') as ifs:
             return pickle.load(ifs)
 
+    with requests.Session() as sess:
+        Crawler._login(sess, cookies_file=cookies_file)
+
+        # Check whether the specialization/course exists
+
+        if isSpec:
+            if 'elements' not in sess.get(URL_SPEC(slug)).json():
+                raise SpecNotExistExcepton(slug)
+        else:
+            if 'elements' not in sess.get(URL_COURSE_1(slug)).json():
+                raise CourseNotExistExcepton(slug)
+
+        # Check whether the cookies_file expires
+
+        course = Course(slug=COURSE_0)
+        d = sess.get(URL_COURSE_1(course['slug'])).json()
+        course['id'] = d['elements'][0]['id']
+
+        d = sess.get(URL_COURSE_REFERENCES(course['id'])).json()
+        if d.get('errorCode') == 'Not Authorized':
+            raise CookiesExpiredException()
+        assert 'errorCode' not in d
+
     with TaskScheduler() as ts, requests.Session() as sess:
         ts.start(n_worker=n_worker)
-        crawler = Crawler(ts=ts, sess=sess, cookies=cookies)
+        crawler = Crawler(ts=ts, sess=sess, cookies_file=cookies_file)
         soc = crawler.crawl(slug=slug, isSpec=isSpec)
 
     with open(file_pkl, 'wb') as ofs:
@@ -135,12 +159,12 @@ def main():
     parser.add_argument('--isSpec', action='store_true',
         help='indicate that @slug is slug of a specialization')
     parser.add_argument('--n-worker', type=int, default=4,
-        help='''the number of threads used to crawl webpages. Default: 4.
-                NOTE: if errors show up during crawling, try decreasing this value''')
+        help='the number of threads used to crawl webpages. Default: 4')
 
     parser.add_argument('--outdir', default='.',
         help='the directory to save files to. Default: `.\'')
-    parser.add_argument('--how', choices=['builtin', 'curl', 'aria2', 'aria2-rpc', 'uget'],
+    parser.add_argument('--how', required=True,
+        choices=['builtin', 'curl', 'aria2', 'aria2-rpc', 'uget', 'dummy'],
         help='''how to download files.
                 builtin (NOT recommonded): use the builtin downloader.
                 curl: invoke the `curl' tool or generate an "input file" for that

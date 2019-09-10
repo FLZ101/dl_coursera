@@ -1,12 +1,13 @@
 import pickle
 import os
 import logging
+import base64
 
-from http.cookiejar import CookieJar, MozillaCookieJar
+from http.cookiejar import MozillaCookieJar
 
 from .define import *
 
-from .lib.misc import format_dict
+from .lib.misc import format_dict, TmpFile
 from .markup import CML
 
 PRIO_SPEC = 'A'
@@ -15,8 +16,40 @@ PRIO_COURSE_MATERIAL = 'C'
 
 
 class Crawler:
-    def __init__(self, *, ts, sess, cookies):
+    @staticmethod
+    def _login(sess, cookies_file=None, cookies_base64=None):
+        if cookies_file is None:
+            if cookies_base64 is None:
+                cookies_base64 = os.environ.get('DL_COURSERA_COOKIES_BASE64')
+                assert cookies_base64
+
+            cookies = base64.standard_b64decode(cookies_base64)
+
+            with TmpFile() as tmpfile:
+                with open(tmpfile, 'wb') as ofs:
+                    ofs.write(cookies)
+
+                cj = MozillaCookieJar()
+                cj.load(tmpfile)
+        else:
+            cj = MozillaCookieJar()
+            cj.load(cookies_file)
+
+        sess.cookies = cj
+
+    @staticmethod
+    def _get(sess, url):
+        resp = sess.get(url)
+        d = resp.json()
+        if 'errorCode' in d:
+            raise BadResponseException(d)
+        return d
+
+    def __init__(self, *, ts, sess, cookies_file=None):
         self._ts = ts
+        self._sess = sess
+        self._cookies_file = cookies_file
+
         self._loggedin = False
 
         def attach(func):
@@ -24,24 +57,14 @@ class Crawler:
             return func
 
         @attach
-        def login():
-            if isinstance(cookies, CookieJar):
-                cj = cookies
-            else:
-                cj = MozillaCookieJar()
-                cj.load(cookies)
-
-            sess.cookies = cj
-            self._loggedin = True
-
-        @attach
         @ts.register_task(
             priority=PRIO_SPEC, ttl=3,
             format_kwargs=lambda _: format_dict({'spec': _['spec']['slug']})
         )
         def crawl_spec(*, spec):
-            resp = sess.get(URL_SPEC(spec['slug']))
-            d = resp.json()
+            d = Crawler._get(sess, URL_SPEC(spec['slug']))
+            if 'elements' not in d:
+                raise SpecNotExistExcepton(spec['slug'])
 
             _ = d['elements'][0]
             spec['id'] = _['id']
@@ -73,8 +96,9 @@ class Crawler:
             format_kwargs=lambda _: format_dict({'cource': _['course']['slug']})
         )
         def crawl_course(*, course):
-            resp = sess.get(URL_COURSE_1(course['slug']))
-            d = resp.json()
+            d = Crawler._get(sess, URL_COURSE_1(course['slug']))
+            if 'elements' not in d:
+                raise CourseNotExistExcepton(course['slug'])
 
             _ = d['elements'][0]
             course['name'] = _['name']
@@ -84,22 +108,29 @@ class Crawler:
 
             # ------
 
-            resp = sess.get(URL_COURSE_2(course['slug']))
-            d = resp.json()['linked']
+            d = Crawler._get(sess, URL_COURSE_2(course['slug']))['linked']
 
             id2item = {}
             for _ in d['onDemandCourseMaterialItems.v2']:
                 typeName = _['contentSummary']['typeName']
+                if typeName in ['exam', 'quiz', 'phasedPeer', 'discussionPrompt',
+                                'gradedProgramming', 'programming']:
+                    continue
+
+                if typeName not in ['lecture', 'notebook', 'supplement']:
+                    logging.warning('[crawl_course] unknown typeName=%s\n%s' % (typeName, _))
+                    continue
+
+                if _.get('isLocked'):
+                    logging.info('[crawl_course] locked item: %s' % _)
+                    continue
+
                 if typeName == 'lecture':
                     id2item[_['id']] = CourseMaterialLecture(id_=_['id'], name=_['name'], slug=_['slug'])
                 elif typeName == 'notebook':
                     id2item[_['id']] = CourseMaterialNotebook(id_=_['id'], name=_['name'], slug=_['slug'])
                 elif typeName == 'supplement':
                     id2item[_['id']] = CourseMaterialSupplement(id_=_['id'], name=_['name'], slug=_['slug'])
-                elif typeName in ['exam', 'quiz', 'phasedPeer']:
-                    pass
-                else:
-                    logging.warning('[crawl_course] unknown typeName=%s\n%s' % (typeName, _))
 
             id2lesson = {}
             for _ in d['onDemandCourseMaterialLessons.v1']:
@@ -137,11 +168,9 @@ class Crawler:
 
         def _crawl_course_ref(course, id_ref=None):
             if not id_ref:
-                resp = sess.get(URL_COURSE_REFERENCES(course['id']))
+                d = Crawler._get(sess, URL_COURSE_REFERENCES(course['id']))
             else:
-                resp = sess.get(URL_COURSE_REFERENCE(course['id'], id_ref))
-
-            d = resp.json()
+                d = Crawler._get(sess, URL_COURSE_REFERENCE(course['id'], id_ref))
 
             itemId2ref = {}
             for _ in d['elements']:
@@ -175,7 +204,7 @@ class Crawler:
 
         @ts.register_task(
             priority=PRIO_COURSE_MATERIAL, ttl=3,
-            format_kwargs=lambda _: format_dict({'cource': _['course']['slug']})
+            format_kwargs=lambda _: format_dict({'cource': _['course']['slug'], 'id_ref': _['id_ref']})
         )
         def crawl_course_reference(*, course, id_ref):
             for ref in course['references']:
@@ -190,8 +219,7 @@ class Crawler:
         )
         def crawl_lecture(*, course, lecture):
             # lecture videos
-            resp = sess.get(URL_LECTURE_1(course['id'], lecture['id']))
-            d = resp.json()
+            d = Crawler._get(sess, URL_LECTURE_1(course['id'], lecture['id']))
 
             for _ in d['linked']['onDemandVideos.v1']:
                 url_subtitle = _['subtitles'].get('en')
@@ -205,8 +233,7 @@ class Crawler:
                 lecture['videos'].append(Video(url_video=url_video, url_subtitle=url_subtitle))
 
             # lecture assets
-            resp = sess.get(URL_LECTURE_2(course['id'], lecture['id']))
-            d = resp.json()
+            d = Crawler._get(sess, URL_LECTURE_2(course['id'], lecture['id']))
 
             assets = []
             assetIDs = []
@@ -228,9 +255,7 @@ class Crawler:
                                                  'supplement': _['supplement']['slug']})
         )
         def crawl_supplement(course, supplement):
-            resp = sess.get(URL_SUPPLEMENT(course['id'], supplement['id']))
-            d = resp.json()
-
+            d = Crawler._get(sess, URL_SUPPLEMENT(course['id'], supplement['id']))
             for _ in d['linked']['openCourseAssets.v1']:
                 typeName = _['typeName']
                 if typeName == 'cml':
@@ -250,8 +275,7 @@ class Crawler:
             if len(ids) == 0:
                 return []
 
-            resp = sess.get(URL_ASSET(ids))
-            d = resp.json()
+            d = Crawler._get(sess, URL_ASSET(ids))
 
             assets = []
             for _ in d['elements']:
@@ -268,6 +292,11 @@ class Crawler:
             if not name.endswith(fileExtension):
                 name += fileExtension
             return name
+
+    def login(self):
+        if not self._loggedin:
+            Crawler._login(self._sess, self._cookies_file)
+            self._loggedin = True
 
     def crawl(self, *, slug, isSpec):
         if not self._loggedin:

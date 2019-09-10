@@ -3,6 +3,7 @@ import json
 from .lib.MyDict import MyDict
 
 URL_ROOT = 'https://www.coursera.org'
+COURSE_0 = 'learning-how-to-learn'
 
 
 def URL_SPEC(slug):
@@ -39,6 +40,33 @@ def URL_SUPPLEMENT(id_course, id_supplement):
 
 def URL_ASSET(ids):
     return URL_ROOT + '/api/assets.v1?ids={}&fields=audioSourceUrls%2C+videoSourceUrls%2C+videoThumbnailUrls%2C+fileExtension%2C+tags'.format(','.join(ids))
+
+
+class DlCourseraException(Exception):
+    pass
+
+
+class SpecNotExistExcepton(DlCourseraException):
+    def __init__(self, slug):
+        super().__init__('The specialization %s does not exist' % slug)
+        self.slug = slug
+
+
+class CourseNotExistExcepton(DlCourseraException):
+    def __init__(self, slug):
+        super().__init__('The course %s does not exist' % slug)
+        self.slug = slug
+
+
+class CookiesExpiredException(DlCourseraException):
+    def __init__(self):
+        super().__init__('The cookies.txt expired')
+
+
+class BadResponseException(DlCourseraException):
+    def __init__(self, d):
+        super().__init__('Bad response: %s' % d)
+        self.d = d
 
 
 class Spec(MyDict):
