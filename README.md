@@ -1,4 +1,4 @@
-A simple, fast, and reliable Coursera crawling & downloading tool
+![](https://travis-ci.org/feng-lei/dl_coursera.svg?branch=master)![](https://img.shields.io/pypi/v/dl_coursera)![](https://img.shields.io/github/license/feng-lei/dl_coursera)
 
 ## Todo
 
@@ -24,17 +24,17 @@ $ dl_coursera --version
 
    For **Chrome**, you can use the [cookies.txt](https://chrome.google.com/webstore/detail/cookiestxt/njabckikapfpffapmjgojcnbfjonfjfg) extension.
 
-   ![](doc/1.png)
+   ![](https://raw.githubusercontent.com/feng-lei/dl_coursera/master/doc/1.png)
 
    For **Firefox**, you can use the [Export Cookies](https://addons.mozilla.org/en-US/firefox/addon/export-cookies-txt/?src=search) extension.
 
-   ![](doc/2.png)
+   ![](https://raw.githubusercontent.com/feng-lei/dl_coursera/master/doc/2.png)
 
 2. Enroll
 
    Navigate to homepage of the **course**/**specialization** you'd like to download, you can see its **slug** at the address bar. **Enroll** it.
 
-   ![](doc/0.png)
+   ![](https://raw.githubusercontent.com/feng-lei/dl_coursera/master/doc/0.png)
 
 3. Download
 
@@ -169,7 +169,7 @@ $ dl_coursera --cookies path/to/cookies.txt --slug mathematical-thinking --outdi
 
 Using an aria2 GUI like [webui-aria2](https://github.com/ziahamza/webui-aria2) is highly recommended.
 
-![](doc/3.png)
+![](https://raw.githubusercontent.com/feng-lei/dl_coursera/master/doc/3.png)
 
 ### Using the "uget" downloader
 
@@ -197,4 +197,4 @@ $ uget-gtk &
 $ dl_coursera --cookies path/to/cookies.txt --slug mathematical-thinking --outdir mt --how uget
 ```
 
-![](doc/4.png)
+![](https://raw.githubusercontent.com/feng-lei/dl_coursera/master/doc/4.png)

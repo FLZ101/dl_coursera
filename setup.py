@@ -15,7 +15,7 @@ def _readlines(filename):
 setuptools.setup(
     name=dl_coursera.app_name,
     version=dl_coursera.app_version,
-    author='Fenglei Zhang',
+    author='fengleizZZ',
     author_email='fenglei4518@hotmail.com',
     description='A simple, fast, and reliable Coursera crawling & downloading tool',
     long_description=_read('README.md'),
@@ -23,10 +23,10 @@ setuptools.setup(
     url='https://github.com/feng-lei/dl_coursera',
     keywords=['dl_coursera', 'coursera', 'coursera-dl', 'download', 'education', 'MOOC'],
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Environment :: Console',
         'Intended Audience :: End Users/Desktop',
-        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3 :: Only',
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
         'Topic :: Education'

@@ -1,0 +1,17 @@
+language: python
+python:
+  - "3.6"
+
+env:
+  - PYTHONPATH=$TRAVIS_BUILD_DIR:$PYTHONPATH
+
+git:
+  depth: false
+
+install:
+  - pip install -r requirements.txt
+  - pip install -r requirements-dev.txt
+
+script:
+  - python -m unittest -v
+  - python example/Crawler.py
