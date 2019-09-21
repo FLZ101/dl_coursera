@@ -36,3 +36,11 @@ class TmpFile:
     def __exit__(self, exc_type, exc_value, traceback):
         # os.remove(self._filename)
         pass
+
+
+def get_latest_app_version():
+    import requests
+    resp = requests.get('https://pypi.org/pypi/dl-coursera/json')
+    d = resp.json()
+
+    return sorted(d['releases'].keys())[-1]
