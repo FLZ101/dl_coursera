@@ -1,2 +1,2 @@
 app_name = 'dl_coursera'
-app_version = '0.1.1'
+app_version = '0.1.2'

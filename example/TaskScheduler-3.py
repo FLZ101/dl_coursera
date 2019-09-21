@@ -14,7 +14,7 @@ def f(*, i, s):
 
 def main():
     def _run():
-        for i, s in enumerate(['Alice', 'Bob', 'Jodie', 'He', 'Cindy']):
+        for i, s in enumerate(['Alice', 'Bob', 'Cindy', 'Dave', 'Emily']):
             f(i=i, s=s)
 
     ts.start(n_worker=3)

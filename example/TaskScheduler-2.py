@@ -22,7 +22,7 @@ def f(*, s):
 def main():
     ts.start(n_worker=3)
 
-    for s in ['Alice', 'Bob', 'Jodie', 'Cindy']:
+    for s in ['Alice', 'Bob', 'Cindy', 'Dave']:
         f(s=s)
 
     ts.wait()

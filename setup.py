@@ -31,9 +31,9 @@ setuptools.setup(
         'Operating System :: OS Independent',
         'Topic :: Education'
     ],
-    python_requires='>=3',
-    install_requires=_readlines('environments.txt'),
-    extras_require={'dev': _readlines('environments-dev.txt')},
+    python_requires='>=3.5',
+    install_requires=_readlines('requirements.txt'),
+    extras_require={'dev': _readlines('requirements-dev.txt')},
     py_modules=['dl_coursera_run'],
     packages=setuptools.find_packages(),
     entry_points={

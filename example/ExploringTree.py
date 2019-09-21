@@ -12,13 +12,13 @@ def main():
     print('whereami: %s\n' % et.whereami())
 
     with et:
-        jump('jodie')
+        jump('quick')
         jump('.')
-        jump('he')
+        jump('fox')
         jump('..')
         jump('/ali/ce/bo/b')
         jump('..////../')
-        jump('/jodie/he/r')
+        jump('/lazy/do/g')
 
     print('\nwhereami: %s' % et.whereami())
 
