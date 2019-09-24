@@ -201,7 +201,7 @@ class CML:
 
                 tr.skip_children()
 
-            elif e0.name in ['li', 'strong', 'em', 'u', 'table', 'tr', 'td', 'th']:
+            elif e0.name in ['li', 'strong', 'em', 'u', 'table', 'tr', 'td', 'th', 'sup', 'sub']:
                 e1 = bs4.Tag(name=e0.name)
 
             elif e0.name in ['co-content']:

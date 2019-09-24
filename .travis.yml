@@ -15,3 +15,8 @@ install:
 script:
   - python -m unittest -v
   - python example/Crawler.py
+
+notifications:
+  email:
+    recipients:
+      - fenglei4518@hotmail.com

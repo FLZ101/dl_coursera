@@ -35,7 +35,7 @@ class Crawler:
             cj = MozillaCookieJar()
             cj.load(cookies_file)
 
-        sess.cookies = cj
+        sess.cookies.update(cj)
 
     @staticmethod
     def _get(sess, url):
