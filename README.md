@@ -1,4 +1,4 @@
-![](https://travis-ci.org/feng-lei/dl_coursera.svg?branch=master)![](https://img.shields.io/pypi/v/dl_coursera)![](https://img.shields.io/github/license/feng-lei/dl_coursera)
+[![](https://travis-ci.org/feng-lei/dl_coursera.svg?branch=master)](https://travis-ci.org/feng-lei/dl_coursera/builds)[![](https://img.shields.io/pypi/v/dl_coursera)](https://pypi.org/project/dl-coursera/)[![](https://img.shields.io/github/license/feng-lei/dl_coursera)](https://github.com/feng-lei/dl_coursera/blob/master/LICENSE.txt)
 
 ## Todo
 
@@ -9,9 +9,14 @@
 
 ## Install
 
-> Python 3.x is required. It is recommended to install this tool in a virtual environment.
+Python **⩾3.5** is required. It is **RECOMMENDED** to install `dl_coursera` in a virtual environment.
 
 ```
+# make sure you have Python ⩾3.5
+$ python -c "from __future__ import print_function; import sys; print(':-)' if sys.version_info >= (3, 5) else ':-(')"
+:-)
+
+# install the latest version of dl_coursera
 $ pip install -U dl_coursera
 $ dl_coursera --version
 ```
@@ -32,7 +37,7 @@ $ dl_coursera --version
 
 2. Enroll
 
-   Navigate to homepage of the **course**/**specialization** you'd like to download, you can see its **slug** at the address bar. **Enroll** it.
+   Navigate to homepage of the **course**/**specialization** you'd like to download, you can see its **slug** at the address bar. **Enroll** in it.
 
    ![](https://raw.githubusercontent.com/feng-lei/dl_coursera/master/doc/0.png)
 
@@ -40,18 +45,16 @@ $ dl_coursera --version
 
    ```
    $ dl_coursera --help
-   usage: dl_coursera_run.py [-h] [--version] [--cookies COOKIES] --slug SLUG
-                             [--isSpec] [--n-worker {1,2,3,4,5}]
-                             [--outdir OUTDIR] --how
-                             {builtin,curl,aria2,aria2-rpc,uget,dummy}
-                             [--generate-input-file]
-                             [--aria2-rpc-url ARIA2_RPC_URL]
-                             [--aria2-rpc-secret ARIA2_RPC_SECRET]
+   usage: dl_coursera [-h] [--version] [--cookies COOKIES] --slug SLUG [--isSpec]
+                      [--n-worker {1,2,3,4,5}] [--outdir OUTDIR] --how
+                      {builtin,curl,aria2,aria2-rpc,uget,dummy}
+                      [--generate-input-file] [--aria2-rpc-url ARIA2_RPC_URL]
+                      [--aria2-rpc-secret ARIA2_RPC_SECRET]
 
    A simple, fast, and reliable Coursera crawling & downloading tool
 
    optional arguments:
-     -h, --help            show this help message and exit
+    -h, --help            show this help message and exit
      --version             show program's version number and exit
      --cookies COOKIES     path of the `cookies.txt`
      --slug SLUG           slug of a course or a specializtion (with @--isSpec)
@@ -96,7 +99,7 @@ $ dl_coursera --version
    # download the specialization, of which slug is "algorithms"
    # saving files to the directory "alg"
    # using the "built-in" downloader
-   $ dl_coursera --cookies path/to/cookies.txt --slug algorithms --isSpec --outdir alg --how builtin
+   $ dl_coursera --cookies path/to/cookies.txt --slug algorithms --isSpec --outdir alg --how builtin --n-worker 1
    ```
 
 ## Examples
