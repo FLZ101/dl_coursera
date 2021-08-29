@@ -1,4 +1,4 @@
-[![](https://travis-ci.org/FLZ101/dl_coursera.svg?branch=master)](https://travis-ci.org/FLZ101/dl_coursera/builds)[![](https://img.shields.io/pypi/v/dl_coursera)](https://pypi.org/project/dl-coursera/)[![](https://img.shields.io/github/license/FLZ101/dl_coursera)](https://github.com/FLZ101/dl_coursera/blob/master/LICENSE.txt)
+[![](https://travis-ci.com/FLZ101/dl_coursera.svg?branch=master)](https://travis-ci.com/FLZ101/dl_coursera/builds)[![](https://img.shields.io/pypi/v/dl_coursera)](https://pypi.org/project/dl-coursera/)[![](https://img.shields.io/github/license/FLZ101/dl_coursera)](https://github.com/FLZ101/dl_coursera/blob/master/LICENSE.txt)
 
 ## Todo
 
