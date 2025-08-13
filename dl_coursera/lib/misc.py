@@ -1,6 +1,7 @@
 import os
 import tempfile
 
+
 def format_dict(d):
     return ', '.join(['%s=%s' % (k, v) for k, v in d.items()])
 
@@ -40,6 +41,7 @@ class TmpFile:
 
 def get_latest_app_version():
     import requests
+
     resp = requests.get('https://pypi.org/pypi/dl-coursera/json')
     d = resp.json()
 

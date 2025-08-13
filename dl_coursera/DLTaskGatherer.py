@@ -32,7 +32,9 @@ class DLTaskGatherer:
         self._file_tasks = []
 
     def gather(self):
-        (self._gather_spec if self._soc['type'] == 'Spec' else self._gather_course) (self._soc)
+        (self._gather_spec if self._soc['type'] == 'Spec' else self._gather_course)(
+            self._soc
+        )
 
         _dir = self._path(self._resource_node.abspath()[1:])
         if not os.path.exists(_dir):
@@ -96,7 +98,9 @@ class DLTaskGatherer:
             for i, ref in enumerate(course['references']):
                 item = ref['item']
                 if item['type'] == 'CML':
-                    refid2node[ref['id']] = self._et.see('%02d@%s.html' % (i + 1, ref['slug']))
+                    refid2node[ref['id']] = self._et.see(
+                        '%02d@%s.html' % (i + 1, ref['slug'])
+                    )
 
             def fn_a(a):
                 _refid = a.get('refid')
@@ -105,8 +109,10 @@ class DLTaskGatherer:
 
                 _node = refid2node.get(_refid)
                 if not _node:
-                    logging.warning('[fn_a] unknown _refid=%s\n%s' %
-                                    (_refid, {_1: _2.abspath() for _1, _2 in refid2node.items()}))
+                    logging.warning(
+                        '[fn_a] unknown _refid=%s\n%s'
+                        % (_refid, {_1: _2.abspath() for _1, _2 in refid2node.items()})
+                    )
                 else:
                     a['href'] = self._et.relpathTo(_node)
 
@@ -167,16 +173,21 @@ class DLTaskGatherer:
 
     def _gather_cml(self, cml, i, supplement):
         import bs4
+
         html = cml['html']
         html = bs4.BeautifulSoup(html, 'html.parser')
         for a in html.find_all('a'):
             self._fn_a(a)
         html = str(html)
 
-        data = render_supplement(content=html,
-                                 resource_path=self._resource_path(),
-                                 title='%s' % supplement['name']).encode('UTF-8')
-        self._add_file_task(data, self._see('%02d@%s.html' % (i + 1, supplement['slug'])))
+        data = render_supplement(
+            content=html,
+            resource_path=self._resource_path(),
+            title='%s' % supplement['name'],
+        ).encode('UTF-8')
+        self._add_file_task(
+            data, self._see('%02d@%s.html' % (i + 1, supplement['slug']))
+        )
 
         for asset in cml['assets']:
             self._gather_asset(asset)

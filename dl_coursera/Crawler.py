@@ -58,8 +58,9 @@ class Crawler:
 
         @attach
         @ts.register_task(
-            priority=PRIO_SPEC, ttl=3,
-            format_kwargs=lambda _: format_dict({'spec': _['spec']['slug']})
+            priority=PRIO_SPEC,
+            ttl=3,
+            format_kwargs=lambda _: format_dict({'spec': _['spec']['slug']}),
         )
         def crawl_spec(*, spec):
             d = Crawler._get(sess, URL_SPEC(spec['slug']))
@@ -82,18 +83,19 @@ class Crawler:
             for _ in spec['courses']:
                 _['slug'] = id2slug[_['id']]
 
-            logging.info('Courses of specialization %s: %s' % (
-                spec['slug'],
-                ', '.join([_['slug'] for _ in spec['courses']])
-            ))
+            logging.info(
+                'Courses of specialization %s: %s'
+                % (spec['slug'], ', '.join([_['slug'] for _ in spec['courses']]))
+            )
 
             for _ in spec['courses']:
                 crawl_course(course=_)
 
         @attach
         @ts.register_task(
-            priority=PRIO_COURSE, ttl=3,
-            format_kwargs=lambda _: format_dict({'cource': _['course']['slug']})
+            priority=PRIO_COURSE,
+            ttl=3,
+            format_kwargs=lambda _: format_dict({'cource': _['course']['slug']}),
         )
         def crawl_course(*, course):
             d = Crawler._get(sess, URL_COURSE_1(course['slug']))
@@ -113,12 +115,20 @@ class Crawler:
             id2item = {}
             for _ in d['onDemandCourseMaterialItems.v2']:
                 typeName = _['contentSummary']['typeName']
-                if typeName in ['exam', 'quiz', 'phasedPeer', 'discussionPrompt',
-                                'gradedProgramming', 'programming']:
+                if typeName in [
+                    'exam',
+                    'quiz',
+                    'phasedPeer',
+                    'discussionPrompt',
+                    'gradedProgramming',
+                    'programming',
+                ]:
                     continue
 
                 if typeName not in ['lecture', 'notebook', 'supplement']:
-                    logging.warning('[crawl_course] unknown typeName=%s\n%s' % (typeName, _))
+                    logging.warning(
+                        '[crawl_course] unknown typeName=%s\n%s' % (typeName, _)
+                    )
                     continue
 
                 if _.get('isLocked'):
@@ -126,15 +136,23 @@ class Crawler:
                     continue
 
                 if typeName == 'lecture':
-                    id2item[_['id']] = CourseMaterialLecture(id_=_['id'], name=_['name'], slug=_['slug'])
+                    id2item[_['id']] = CourseMaterialLecture(
+                        id_=_['id'], name=_['name'], slug=_['slug']
+                    )
                 elif typeName == 'notebook':
-                    id2item[_['id']] = CourseMaterialNotebook(id_=_['id'], name=_['name'], slug=_['slug'])
+                    id2item[_['id']] = CourseMaterialNotebook(
+                        id_=_['id'], name=_['name'], slug=_['slug']
+                    )
                 elif typeName == 'supplement':
-                    id2item[_['id']] = CourseMaterialSupplement(id_=_['id'], name=_['name'], slug=_['slug'])
+                    id2item[_['id']] = CourseMaterialSupplement(
+                        id_=_['id'], name=_['name'], slug=_['slug']
+                    )
 
             id2lesson = {}
             for _ in d['onDemandCourseMaterialLessons.v1']:
-                lesson = CourseMaterialLesson(id_=_['id'], name=_['name'], slug=_['slug'])
+                lesson = CourseMaterialLesson(
+                    id_=_['id'], name=_['name'], slug=_['slug']
+                )
                 for id_item in _['itemIds']:
                     item = id2item.get(id_item)
                     if item is not None:
@@ -144,7 +162,9 @@ class Crawler:
                     id2lesson[lesson['id']] = lesson
 
             for _ in d['onDemandCourseMaterialModules.v1']:
-                module = CourseMaterialModule(id_=_['id'], name=_['name'], slug=_['slug'])
+                module = CourseMaterialModule(
+                    id_=_['id'], name=_['name'], slug=_['slug']
+                )
 
                 for id_ in _['lessonIds']:
                     lesson = id2lesson.get(id_)
@@ -177,7 +197,9 @@ class Crawler:
                 ref = CourseReference(id_=_['shortId'], name=_['name'], slug=_['slug'])
                 course['references'].append(ref)
 
-                itemId = _['content']['org.coursera.ondemand.reference.AssetReferenceContent']['assetId']
+                itemId = _['content'][
+                    'org.coursera.ondemand.reference.AssetReferenceContent'
+                ]['assetId']
                 itemId2ref[itemId] = ref
 
             for _ in d['linked']['openCourseAssets.v1']:
@@ -188,23 +210,31 @@ class Crawler:
                     assets += crawl_assets(assetIDs)
                     html = cml.to_html(assets=assets)
 
-                    itemId2ref[_['id']]['item'] = CourseMaterialSupplementItemCML(html=html, assets=assets)
+                    itemId2ref[_['id']]['item'] = CourseMaterialSupplementItemCML(
+                        html=html, assets=assets
+                    )
 
                     for refid in refids:
                         crawl_course_reference(course=course, id_ref=refid)
                 else:
-                    logging.warning("[_crawl_course_ref] unknown typeName=%s\n%s" % (typeName, _))
+                    logging.warning(
+                        "[_crawl_course_ref] unknown typeName=%s\n%s" % (typeName, _)
+                    )
 
         @ts.register_task(
-            priority=PRIO_COURSE_MATERIAL, ttl=3,
-            format_kwargs=lambda _: format_dict({'cource': _['course']['slug']})
+            priority=PRIO_COURSE_MATERIAL,
+            ttl=3,
+            format_kwargs=lambda _: format_dict({'cource': _['course']['slug']}),
         )
         def crawl_course_references(*, course):
             _crawl_course_ref(course)
 
         @ts.register_task(
-            priority=PRIO_COURSE_MATERIAL, ttl=3,
-            format_kwargs=lambda _: format_dict({'cource': _['course']['slug'], 'id_ref': _['id_ref']})
+            priority=PRIO_COURSE_MATERIAL,
+            ttl=3,
+            format_kwargs=lambda _: format_dict(
+                {'cource': _['course']['slug'], 'id_ref': _['id_ref']}
+            ),
         )
         def crawl_course_reference(*, course, id_ref):
             for ref in course['references']:
@@ -213,9 +243,11 @@ class Crawler:
             _crawl_course_ref(course, id_ref)
 
         @ts.register_task(
-            priority=PRIO_COURSE_MATERIAL, ttl=3,
-            format_kwargs=lambda _: format_dict({'course': _['course']['slug'],
-                                                 'lecture': _['lecture']['slug']})
+            priority=PRIO_COURSE_MATERIAL,
+            ttl=3,
+            format_kwargs=lambda _: format_dict(
+                {'course': _['course']['slug'], 'lecture': _['lecture']['slug']}
+            ),
         )
         def crawl_lecture(*, course, lecture):
             # lecture videos
@@ -227,10 +259,13 @@ class Crawler:
                     url_subtitle = URL_ROOT + url_subtitle
 
                 _ = _['sources']['byResolution']
-                url_video = _[sorted(_.keys())[-1]]  # choose the video with highest resolution
+                # choose the video with highest resolution
+                url_video = _[sorted(_.keys())[-1]]
                 url_video = url_video['mp4VideoUrl']
 
-                lecture['videos'].append(Video(url_video=url_video, url_subtitle=url_subtitle))
+                lecture['videos'].append(
+                    Video(url_video=url_video, url_subtitle=url_subtitle)
+                )
 
             # lecture assets
             d = Crawler._get(sess, URL_LECTURE_2(course['id'], lecture['id']))
@@ -242,17 +277,27 @@ class Crawler:
                 if typeName == 'asset':
                     assetIDs.append(_['definition']['assetId'])
                 elif typeName == 'url':
-                    assets.append(Asset(id_=_['id'], url=_['definition']['url'], name=_['definition']['name']))
+                    assets.append(
+                        Asset(
+                            id_=_['id'],
+                            url=_['definition']['url'],
+                            name=_['definition']['name'],
+                        )
+                    )
                 else:
-                    logging.warning("[crawl_lecture] unknown typeName=%s\n%s" % (typeName, _))
+                    logging.warning(
+                        "[crawl_lecture] unknown typeName=%s\n%s" % (typeName, _)
+                    )
 
             assets += crawl_assets(assetIDs)
             lecture['assets'] = assets
 
         @ts.register_task(
-            priority=PRIO_COURSE_MATERIAL, ttl=3,
-            format_kwargs=lambda _: format_dict({'course': _['course']['slug'],
-                                                 'supplement': _['supplement']['slug']})
+            priority=PRIO_COURSE_MATERIAL,
+            ttl=3,
+            format_kwargs=lambda _: format_dict(
+                {'course': _['course']['slug'], 'supplement': _['supplement']['slug']}
+            ),
         )
         def crawl_supplement(course, supplement):
             d = Crawler._get(sess, URL_SUPPLEMENT(course['id'], supplement['id']))
@@ -264,12 +309,16 @@ class Crawler:
                     assets += crawl_assets(assetIDs)
                     html = cml.to_html(assets=assets)
 
-                    supplement['items'].append(CourseMaterialSupplementItemCML(html=html, assets=assets))
+                    supplement['items'].append(
+                        CourseMaterialSupplementItemCML(html=html, assets=assets)
+                    )
 
                     for refid in refids:
                         crawl_course_reference(course=course, id_ref=refid)
                 else:
-                    logging.warning("[crawl_supplement] unknown typeName=%s\n%s" % (typeName, _))
+                    logging.warning(
+                        "[crawl_supplement] unknown typeName=%s\n%s" % (typeName, _)
+                    )
 
         def crawl_assets(ids):
             if len(ids) == 0:

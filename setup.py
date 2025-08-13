@@ -21,7 +21,14 @@ setuptools.setup(
     long_description=_read('README.md'),
     long_description_content_type='text/markdown',
     url='https://github.com/feng-lei/dl_coursera',
-    keywords=['dl_coursera', 'coursera', 'coursera-dl', 'download', 'education', 'MOOC'],
+    keywords=[
+        'dl_coursera',
+        'coursera',
+        'coursera-dl',
+        'download',
+        'education',
+        'MOOC',
+    ],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Console',
@@ -29,7 +36,7 @@ setuptools.setup(
         'Programming Language :: Python :: 3 :: Only',
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
-        'Topic :: Education'
+        'Topic :: Education',
     ],
     python_requires='>=3.5',
     install_requires=_readlines('requirements.txt'),
@@ -37,13 +44,9 @@ setuptools.setup(
     py_modules=['dl_coursera_run'],
     packages=setuptools.find_packages(),
     entry_points={
-        'console_scripts': [
-            '%s=dl_coursera_run:main' % dl_coursera.app_name
-        ]
+        'console_scripts': ['%s=dl_coursera_run:main' % dl_coursera.app_name]
     },
     include_package_data=True,
-    package_data={
-        'dl_coursera.resource': ['*.zip', 'template/*']
-    },
-    platforms=['any']
+    package_data={'dl_coursera.resource': ['*.zip', 'template/*']},
+    platforms=['any'],
 )

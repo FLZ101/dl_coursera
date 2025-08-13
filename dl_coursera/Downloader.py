@@ -68,16 +68,26 @@ class CheckExeMixIn:
     def check(self):
         exe = self._exe()
         try:
-            subprocess.run([exe, '--version'], stdout=subprocess.DEVNULL,
-                           stderr=subprocess.STDOUT, check=True)
+            subprocess.run(
+                [exe, '--version'],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.STDOUT,
+                check=True,
+            )
         except OSError:
-            raise DownloaderCanNotWork('The executable %s is not installed or not in PATH' % exe)
+            raise DownloaderCanNotWork(
+                'The executable %s is not installed or not in PATH' % exe
+            )
 
 
 class DownloaderSubprocess(CheckExeMixIn, DownloaderTS):
     def _dl(self, *, url, filename):
-        subprocess.run(self._cmdline(url, filename), stdout=subprocess.DEVNULL,
-                       stderr=subprocess.STDOUT, check=True)
+        subprocess.run(
+            self._cmdline(url, filename),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.STDOUT,
+            check=True,
+        )
 
     def _cmdline(self, url, filename):
         pass
@@ -85,7 +95,15 @@ class DownloaderSubprocess(CheckExeMixIn, DownloaderTS):
 
 class DownloaderCurl(DownloaderSubprocess):
     def _cmdline(self, url, filename):
-        return ['curl', '--create-dirs', '--globoff', '--url', url, '--output', filename]
+        return [
+            'curl',
+            '--create-dirs',
+            '--globoff',
+            '--url',
+            url,
+            '--output',
+            filename,
+        ]
 
     def _exe(self):
         return 'curl'
@@ -93,14 +111,18 @@ class DownloaderCurl(DownloaderSubprocess):
 
 class DownloaderAria2(DownloaderSubprocess):
     def _cmdline(self, url, filename):
-        return ['aria2c',
-                '--allow-overwrite=true',
-                '--always-resume=true',
-                '--auto-file-renaming=false',
-                '--continue=true',
-                '-d', os.path.dirname(filename),
-                '-o', os.path.basename(filename),
-                url]
+        return [
+            'aria2c',
+            '--allow-overwrite=true',
+            '--always-resume=true',
+            '--auto-file-renaming=false',
+            '--continue=true',
+            '-d',
+            os.path.dirname(filename),
+            '-o',
+            os.path.basename(filename),
+            url,
+        ]
 
     def _exe(self):
         return 'aria2c'
@@ -116,7 +138,9 @@ class DownloaderInput_file(Downloader):
         self._env.filters['_esc'] = _esc
 
     def download(self):
-        template = self._env.from_string(load_resource(self._template_path).decode('UTF-8'))
+        template = self._env.from_string(
+            load_resource(self._template_path).decode('UTF-8')
+        )
         return template.render(dl_tasks=self._dl_tasks)
 
     @property
@@ -146,13 +170,20 @@ class DownloaderUget(CheckExeMixIn, Downloader):
         for _ in self._dl_tasks:
             _url = _['url']
             _filename = _['filename']
-            cmdline = [self._exe(), '--quiet',
-                       '--folder=%s' % os.path.dirname(_filename),
-                       '--filename=%s' % os.path.basename(_filename), _url]
-            subprocess.run(cmdline, stdout=subprocess.DEVNULL,
-                           stderr=subprocess.STDOUT, check=True)
+            cmdline = [
+                self._exe(),
+                '--quiet',
+                '--folder=%s' % os.path.dirname(_filename),
+                '--filename=%s' % os.path.basename(_filename),
+                _url,
+            ]
+            subprocess.run(
+                cmdline, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, check=True
+            )
 
-            logging.info('add downloading task: url=%s, filename=%s' % (_url, _filename))
+            logging.info(
+                'add downloading task: url=%s, filename=%s' % (_url, _filename)
+            )
 
     def _exe(self):
         return 'uget' if sys.platform == 'win32' else 'uget-gtk'
@@ -171,17 +202,24 @@ class DownloaderAria2_rpc(Downloader):
         for _ in self._dl_tasks:
             _url = _['url']
             _filename = _['filename']
-            _args = [[_url], {'dir': os.path.dirname(_filename),
-                              'out': os.path.basename(_filename),
-                              'allow-overwrite': 'true',
-                              'always-resume': 'true',
-                              'auto-file-renaming': 'false',
-                              'continue': 'true'}]
+            _args = [
+                [_url],
+                {
+                    'dir': os.path.dirname(_filename),
+                    'out': os.path.basename(_filename),
+                    'allow-overwrite': 'true',
+                    'always-resume': 'true',
+                    'auto-file-renaming': 'false',
+                    'continue': 'true',
+                },
+            ]
             if self._secret is not None:
                 _args.insert(0, 'token:%s' % self._secret)
 
             self._client.aria2.addUri(*_args)
-            logging.info('add downloading task: url=%s, filename=%s' % (_url, _filename))
+            logging.info(
+                'add downloading task: url=%s, filename=%s' % (_url, _filename)
+            )
 
     def check(self):
         try:

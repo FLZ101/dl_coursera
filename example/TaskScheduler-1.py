@@ -10,8 +10,8 @@ def f(*, n):
     time.sleep(1)
     print('f', n)
 
-    g(n=n+1)
-    g(n=n+1)
+    g(n=n + 1)
+    g(n=n + 1)
 
 
 @ts.register_task
@@ -19,8 +19,8 @@ def g(*, n):
     time.sleep(1)
     print('g', n)
 
-    h(n=n+1)
-    h(n=n+1)
+    h(n=n + 1)
+    h(n=n + 1)
 
 
 @ts.register_task

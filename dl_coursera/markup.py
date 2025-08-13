@@ -11,6 +11,7 @@ import jinja2
 from .resource import load_resource
 from .define import URL_ROOT
 
+
 def _is_root(e):
     return e.parent is None
 
@@ -24,8 +25,7 @@ def _has_no_child(tag):
 
 
 class Traversal:
-    '''depth-first traversal
-    '''
+    '''depth-first traversal'''
 
     def __init__(self, root, *, tagOnly=False):
         assert _is_root(root)
@@ -78,7 +78,11 @@ class CML:
 
         self._html = None
 
-    def get_resources(self, *, _pat_ref=re.compile(r'%s/learn/[^/]+/resources/([0-9a-zA-Z-]+)' % URL_ROOT)):
+    def get_resources(
+        self,
+        *,
+        _pat_ref=re.compile(r'%s/learn/[^/]+/resources/([0-9a-zA-Z-]+)' % URL_ROOT)
+    ):
         if self._assets is None:
             self._assets = []
             self._assetIDs = []
@@ -94,7 +98,8 @@ class CML:
                         from .lib.misc import url_basename
                         from .define import Asset
 
-                        id_ = str(uuid.uuid4()); e['assetId'] = id_
+                        id_ = str(uuid.uuid4())
+                        e['assetId'] = id_
                         url = e['src']
                         name = url_basename(url)
                         self._assets.append(Asset(id_=id_, url=url, name=name))
@@ -201,7 +206,18 @@ class CML:
 
                 tr.skip_children()
 
-            elif e0.name in ['li', 'strong', 'em', 'u', 'table', 'tr', 'td', 'th', 'sup', 'sub']:
+            elif e0.name in [
+                'li',
+                'strong',
+                'em',
+                'u',
+                'table',
+                'tr',
+                'td',
+                'th',
+                'sup',
+                'sub',
+            ]:
                 e1 = bs4.Tag(name=e0.name)
 
             elif e0.name in ['co-content']:
@@ -219,5 +235,9 @@ class CML:
 
 def render_supplement(*, content, resource_path, title='', __={}):
     if __.get('template') is None:
-        __['template'] = jinja2.Template(load_resource('template/supplement.html').decode('UTF-8'))
-    return __['template'].render(content=content, resource_path=resource_path, title=title)
+        __['template'] = jinja2.Template(
+            load_resource('template/supplement.html').decode('UTF-8')
+        )
+    return __['template'].render(
+        content=content, resource_path=resource_path, title=title
+    )

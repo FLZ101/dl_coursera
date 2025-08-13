@@ -51,7 +51,9 @@ _shutdown_task = Task(priority=Task.HIGHEST_PRIO, ttl=1, _isSpecial=True)
 
 
 class FuncTask(Task):
-    def __init__(self, *, priority='A', ttl=1, func, kwargs=None, format_kwargs=None, desc=None):
+    def __init__(
+        self, *, priority='A', ttl=1, func, kwargs=None, format_kwargs=None, desc=None
+    ):
         super().__init__(priority=priority, ttl=ttl)
 
         self._func = func
@@ -130,7 +132,9 @@ class TaskScheduler:
     def start(self, *, n_worker=3, WorkerFactory=threading.Thread):
         n = math.floor(math.log10(n_worker)) + 1
         for i in range(1, n_worker + 1):
-            t = WorkerFactory(target=self._func_work, daemon=True, name='%%0%dd' % n % i)
+            t = WorkerFactory(
+                target=self._func_work, daemon=True, name='%%0%dd' % n % i
+            )
             t.start()
             self._threads.append(t)
 
@@ -138,7 +142,9 @@ class TaskScheduler:
 
     def register_task(self, func=None, *, FuncTaskFactory=FuncTask, **_kwargs):
         if func is None:
-            return functools.partial(self.register_task, FuncTaskFactory=FuncTaskFactory, **_kwargs)
+            return functools.partial(
+                self.register_task, FuncTaskFactory=FuncTaskFactory, **_kwargs
+            )
 
         @functools.wraps(func)
         def _func(**kwargs):
