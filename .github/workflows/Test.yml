@@ -1,24 +1,35 @@
 
+# https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
+
 name: Test
 
 on:
   push:
     paths:
       - '**.py'
-
-env:
-  # https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#secrets-context
-  DL_COURSERA_COOKIES_BASE64: ${{ secrets.DL_COURSERA_COOKIES_BASE64 }}
+      - '.github/workflows/Test.yml'
 
 jobs:
   build-and-test:
-    # https://github.com/actions/runner-images?tab=readme-ov-file#available-images
+
+    # https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/deploy-to-environment
+    environment: Test
+
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        # https://github.com/actions/runner-images?tab=readme-ov-file#available-images
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.8", "3.10", "3.12"]
+
+    env:
+      # https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#secrets-context
+      DL_COURSERA_COOKIES_BASE64: ${{ secrets.DL_COURSERA_COOKIES_BASE64 }}
+
+    defaults:
+      run:
+        shell: ${{ matrix.os == 'windows-latest' && 'cmd' || 'bash' }}
 
     steps:
       # https://github.com/actions/checkout
@@ -34,6 +45,17 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install -r requirements-dev.txt
+
+    # https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-variables#detecting-the-operating-system
+
+    - run: |
+        echo "PYTHONPATH=$(pwd):$PYTHONPATH" >> $GITHUB_ENV
+      if: runner.os != 'Windows'
+
+    # PYTHONPATH ending with ; might cause errors
+    - run: |
+        echo PYTHONPATH=%cd% >> %GITHUB_ENV%
+      if: runner.os == 'Windows'
 
     - name: Run tests
       run: |

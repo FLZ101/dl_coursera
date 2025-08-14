@@ -117,7 +117,7 @@ class TaskScheduler:
             res, self._failures[:] = self._failures[:], []
 
         if len(res) > 0:
-            logging.error('%s failed tasks:\n%s' % (len(res), '\n'.join(map(str, res))))
+            logging.error('#Failed: %d' % len(res))
         return res
 
     def shutdown(self):
