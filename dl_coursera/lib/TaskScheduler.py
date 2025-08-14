@@ -96,7 +96,18 @@ class TaskScheduler:
         self._threading_local = threading.local()
         self._threading_local.task = None
 
+        self._hook_add = None
+        self._hook_done = None
+        self._hook_retry = None
+
     def add_task(self, task):
+        if self._hook_add:
+            self._hook_add()
+        self._q.put(task)
+
+    def retry_task(self, task):
+        if self._hook_retry:
+            self._hook_retry()
         self._q.put(task)
 
     def wait(self):
@@ -104,6 +115,9 @@ class TaskScheduler:
 
         with self._failures_lock:
             res, self._failures[:] = self._failures[:], []
+
+        if len(res) > 0:
+            logging.error('%s failed tasks:\n%s' % (len(res), '\n'.join(map(str, res))))
         return res
 
     def shutdown(self):
@@ -129,7 +143,15 @@ class TaskScheduler:
             if self._n_worker == 0:
                 self._shutdown_event.set()
 
-    def start(self, *, n_worker=3, WorkerFactory=threading.Thread):
+    def start(
+        self,
+        *,
+        n_worker=3,
+        WorkerFactory=threading.Thread,
+        hook_add=None,
+        hook_done=None,
+        hook_retry=None
+    ):
         n = math.floor(math.log10(n_worker)) + 1
         for i in range(1, n_worker + 1):
             t = WorkerFactory(
@@ -139,6 +161,9 @@ class TaskScheduler:
             self._threads.append(t)
 
         self._n_worker = n_worker
+        self._hook_add = hook_add
+        self._hook_done = hook_done
+        self._hook_retry = hook_retry
 
     def register_task(self, func=None, *, FuncTaskFactory=FuncTask, **_kwargs):
         if func is None:
@@ -169,18 +194,20 @@ class TaskScheduler:
                 break
 
             try:
-                logging.info('[Doing] %s' % task)
+                logging.info('[.....] %s' % task)
                 task.run()
+                if self._hook_done:
+                    self._hook_done()
             except Exception:
                 tb_msg = traceback.format_exc()
                 if task.should_run():
-                    self.add_task(task)
+                    self.retry_task(task)
                     logging.warning('[Retry later] %s\n%s' % (task, tb_msg))
                 else:
                     self._add_failure((task, tb_msg))
                     logging.error('[Failed] %s\n%s' % (task, tb_msg))
             else:
-                logging.info('[Done] %s' % task)
+                logging.info('[Done.] %s' % task)
 
             self._q.task_done()
 

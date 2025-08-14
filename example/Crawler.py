@@ -41,6 +41,9 @@ def test_crawler():
 
 if __name__ == '__main__':
     logging.basicConfig(
-        level=logging.INFO, format='%(asctime)s - %(threadName)s - %(message)s'
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        style='%',
+        datefmt='%Y-%m-%d %H:%M:%S',
     )
     test_crawler()

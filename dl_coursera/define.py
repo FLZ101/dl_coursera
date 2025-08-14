@@ -103,6 +103,12 @@ class CourseNotExistExcepton(DlCourseraException):
         self.slug = slug
 
 
+class NotFoundExcepton(DlCourseraException):
+    def __init__(self, slug):
+        super().__init__('The specialization/course %s is not found' % slug)
+        self.slug = slug
+
+
 class CookiesExpiredException(DlCourseraException):
     def __init__(self):
         super().__init__('The cookies.txt expired')

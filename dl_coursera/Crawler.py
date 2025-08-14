@@ -1,4 +1,3 @@
-import pickle
 import os
 import logging
 import base64
@@ -20,6 +19,7 @@ class Crawler:
     def _login(sess, cookies_file=None, cookies_base64=None):
         if cookies_file is None:
             if cookies_base64 is None:
+                # the env should contain $(base64 -w 0 cookies.txt)
                 cookies_base64 = os.environ.get('DL_COURSERA_COOKIES_BASE64')
                 assert cookies_base64
 
@@ -357,7 +357,6 @@ class Crawler:
         else:
             res = Course(slug=slug)
             self.crawl_course(course=res)
-        failures = self._ts.wait()
 
-        assert len(failures) == 0
+        self._ts.wait()
         return res

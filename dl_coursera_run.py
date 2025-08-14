@@ -14,29 +14,31 @@ from dl_coursera.lib.misc import change_ext, get_latest_app_version
 from dl_coursera.lib.TaskScheduler import TaskScheduler
 from dl_coursera.Crawler import Crawler
 from dl_coursera.DLTaskGatherer import DLTaskGatherer
-from dl_coursera.Downloader import (DownloaderAria2, DownloaderAria2_input_file, DownloaderAria2_rpc,
-                                    DownloaderBuiltin, DownloaderCurl, DownloaderCurl_input_file,
-                                    DownloaderUget)
+from dl_coursera.Downloader import DownloaderBuiltin
 from dl_coursera.define import *
 
 
+def _dir_cache(outdir, slug):
+    return os.path.join(outdir, slug, '.cache')
+
+
+def _file_log(outdir, slug):
+    return os.path.join(_dir_cache(outdir, slug), 'main.log')
+
+
 def _file_pkl_crawl(outdir, slug):
-    return os.path.join(outdir, '%s.crawl.pkl' % slug)
+    return os.path.join(_dir_cache(outdir, slug), 'crawl.pkl')
 
 
 def _file_json_gather(outdir, slug):
-    return os.path.join(outdir, '%s.gather.json' % slug)
+    return os.path.join(_dir_cache(outdir, slug), 'gather.json')
 
 
 def _file_json_download_dl_tasks_failed(outdir, slug):
-    return os.path.join(outdir, '%s.download.dl_tasks_failed.json' % slug)
+    return os.path.join(_dir_cache(outdir, slug), 'download.dl_tasks_failed.json')
 
 
-def _file_txt_download_input_file(outdir, slug, how):
-    return os.path.join(outdir, '%s.download.%s_input_file.txt' % (slug, how))
-
-
-def crawl(cookies_file, slug, isSpec, outdir, n_worker):
+def crawl(cookies_file, slug, outdir):
     file_pkl = _file_pkl_crawl(outdir, slug)
     if os.path.exists(file_pkl):
         with open(file_pkl, 'rb') as ifs:
@@ -47,12 +49,12 @@ def crawl(cookies_file, slug, isSpec, outdir, n_worker):
 
         # Check whether the specialization/course exists
 
-        if isSpec:
-            if 'elements' not in sess.get(URL_SPEC(slug)).json():
-                raise SpecNotExistExcepton(slug)
+        if 'elements' in sess.get(URL_SPEC(slug)).json():
+            isSpec = True
+        elif 'elements' in sess.get(URL_COURSE_1(slug)).json():
+            isSpec = False
         else:
-            if 'elements' not in sess.get(URL_COURSE_1(slug)).json():
-                raise CourseNotExistExcepton(slug)
+            raise NotFoundExcepton(slug)
 
         # Check whether the cookies_file expires
 
@@ -66,9 +68,39 @@ def crawl(cookies_file, slug, isSpec, outdir, n_worker):
         assert 'errorCode' not in d
 
     with TaskScheduler() as ts, requests.Session() as sess:
-        ts.start(n_worker=n_worker)
-        crawler = Crawler(ts=ts, sess=sess, cookies_file=cookies_file)
-        soc = crawler.crawl(slug=slug, isSpec=isSpec)
+        from tqdm import tqdm
+
+        with tqdm(
+            desc='Crawling...',
+            bar_format='{desc} [{percentage:3.0f}%] {n_fmt}/{total_fmt} {bar}',
+        ) as bar:
+            total = 0
+            done = 0
+
+            def _hook_add():
+                nonlocal total
+                total += 1
+                bar.reset(total)
+                bar.update(done)
+                bar.refresh()
+
+            def _hook_done():
+                nonlocal done
+                done += 1
+                bar.update()
+                bar.refresh()
+
+            def _hook_retry():
+                bar.refresh()
+
+            ts.start(
+                n_worker=1,
+                hook_add=_hook_add,
+                hook_done=_hook_done,
+                hook_retry=_hook_retry,
+            )
+            crawler = Crawler(ts=ts, sess=sess, cookies_file=cookies_file)
+            soc = crawler.crawl(slug=slug, isSpec=isSpec)
 
     with open(file_pkl, 'wb') as ofs:
         pickle.dump(soc, ofs)
@@ -88,12 +120,12 @@ def gather_dl_tasks(outdir, soc):
 
     dl_tasks = DLTaskGatherer(soc=soc, outdir=outdir).gather()
     with open(file_json, 'w', encoding='UTF-8') as ofs:
-        json.dump(dl_tasks, ofs)
+        json.dump(dl_tasks, ofs, indent=4)
 
     return dl_tasks
 
 
-def download_ts(dl_tasks, slug, outdir, how):
+def download(dl_tasks, slug, outdir):
     file_json = _file_json_download_dl_tasks_failed(outdir, slug)
     if os.path.exists(file_json):
         with open(file_json, encoding='UTF-8') as ifs:
@@ -103,101 +135,102 @@ def download_ts(dl_tasks, slug, outdir, how):
         return
 
     with TaskScheduler() as ts:
-        ts.start(n_worker=4)
+        from tqdm import tqdm
 
-        _cls_downloader = {'builtin': DownloaderBuiltin,
-                           'curl': DownloaderCurl,
-                           'aria2': DownloaderAria2}[how]
-        dl_tasks_failed = _cls_downloader(dl_tasks=dl_tasks, ts=ts).download()
+        with tqdm(
+            desc='Downloading...',
+            bar_format='{desc} [{percentage:3.0f}%] {n_fmt}/{total_fmt} {bar}',
+            total=len(dl_tasks),
+        ) as bar:
+
+            def _hook_done():
+                bar.update(1)
+                bar.refresh()
+
+            def _hook_retry():
+                bar.refresh()
+
+            ts.start(n_worker=1, hook_done=_hook_done, hook_retry=_hook_retry)
+            _cls_downloader = DownloaderBuiltin
+            dl_tasks_failed = _cls_downloader(dl_tasks=dl_tasks, ts=ts).download()
 
     with open(file_json, 'w', encoding='UTF-8') as ofs:
-        json.dump(dl_tasks_failed, ofs)
+        json.dump(dl_tasks_failed, ofs, indent=4)
 
 
-def download_input_file(dl_tasks, slug, outdir, how):
-    _cls_downloader = {'curl': DownloaderCurl_input_file,
-                       'aria2': DownloaderAria2_input_file}[how]
-    s = _cls_downloader(dl_tasks=dl_tasks).download()
+def config_logger(logfile: str):
+    logger = logging.getLogger()
+    for _ in list(logger.handlers):
+        logger.removeHandler(_)
+    logger.setLevel(logging.NOTSET)
 
-    file_txt = _file_txt_download_input_file(outdir, slug, how)
-    with open(file_txt, 'w', encoding='UTF-8') as ofs:
-        ofs.write(s)
-    logging.info('new file: %s' % file_txt)
+    stderrHandler = logging.StreamHandler()
+    fileHandler = logging.FileHandler(filename=logfile, encoding='UTF-8', mode='w')
+
+    logger.addHandler(stderrHandler)
+    logger.addHandler(fileHandler)
+
+    formatter = logging.Formatter(
+        fmt='%(asctime)s - %(levelname)s - %(message)s',
+        style='%',
+        datefmt='%Y-%m-%d %H:%M:%S',
+    )
+
+    def _config_handler(h: logging.Handler, name: str, level: int):
+        h.set_name(name)
+        h.setFormatter(formatter)
+        h.setLevel(level)
+
+    _config_handler(stderrHandler, 'stderr', logging.ERROR)
+    _config_handler(fileHandler, 'file', logging.INFO)
 
 
 def main():
-    logging.basicConfig(level=logging.INFO,
-                        format='%(asctime)s - %(threadName)s - %(message)s')
-
-    parser = argparse.ArgumentParser(allow_abbrev=False, add_help=True,
-        description="A simple, fast, and reliable Coursera crawling & downloading tool",
-        epilog=textwrap.dedent('''
+    parser = argparse.ArgumentParser(
+        allow_abbrev=False,
+        add_help=True,
+        description='A simple, fast, and reliable Coursera crawling & downloading tool',
+        epilog=textwrap.dedent(
+            """
             If the command succeeds, you shall see `Done :-)`.
-            If some UNEXPECTED errors occur, try decreasing the value of @--n-worker
-            and/or removing the directory @--outdir.
-            For more information, visit `https://github.com/feng-lei/dl_coursera`.
-        ''')
+            If errors occur, visit `https://github.com/FLZ101/dl_coursera`
+            for the troubleshooting guide.
+            """
+        ),
     )
-    parser.add_argument('--version', action='version', version='%%(prog)s %s' % dl_coursera.app_version)
-    parser.add_argument('--cookies', help='path of the `cookies.txt`')
-    parser.add_argument('--slug', required=True,
-        help='slug of a course or a specializtion (with @--isSpec)')
-    parser.add_argument('--isSpec', action='store_true',
-        help='indicate that @--slug is slug of a specialization')
-    parser.add_argument('--n-worker', type=int, default=3, choices=range(1, 6),
-        help='the number of threads used to crawl webpages. Default: 3')
-
-    parser.add_argument('--outdir', default='.',
-        help='the directory to save files to. Default: `.\'')
-    parser.add_argument('--how', required=True,
-        choices=['builtin', 'curl', 'aria2', 'aria2-rpc', 'uget', 'dummy'],
-        help='''how to download files.
-                builtin (NOT recommonded): use the builtin downloader.
-                curl: invoke `curl` or generate an "input file" for it (with @--generate-input-file).
-                aria2: invoke `aria2c` or generate an "input file" for it (with @--generate-input-file).
-                aria2-rpc (HIGHLY recommonded): add downloading tasks to aria2 through its XML-RPC interface.
-                uget (recommonded): add downloading tasks to the uGet Download Manager'''
+    parser.add_argument('--cookies', required=True, help='path of the cookies file')
+    parser.add_argument(
+        '--outdir', default='.', help="the output directory. Default: `.'"
     )
-    parser.add_argument('--generate-input-file', action='store_true',
-        help='''when @--how is curl/aria2, indicate that to generate an "input file"
-                for that tool, rather than to invoke it''')
-    parser.add_argument('--aria2-rpc-url', default='http://localhost:6800/rpc',
-        help="url of the aria2 XML-RPC interface. Default: `http://localhost:6800/rpc'")
-    parser.add_argument('--aria2-rpc-secret', help='authorization token of the aria2 XML-RPC interface')
+    parser.add_argument(
+        '--version', action='version', version='%%(prog)s %s' % dl_coursera.app_version
+    )
+    parser.add_argument('slug', help='slug of the specialization/course')
 
     args = vars(parser.parse_args())
 
     latest_version = get_latest_app_version()
     if latest_version > dl_coursera.app_version:
-        print('dl_coursera version %s is obsolete. ' % dl_coursera.app_version +
-              'You can upgrade it to version %s via `pip install -U dl_coursera`.' % latest_version)
-        return
+        msg = textwrap.dedent(
+            f"A newer version {latest_version} is available.",
+            file=sys.stderr,
+        )
+        print(msg, file=sys.stderr, flush=True)
 
-    os.makedirs(args['outdir'], exist_ok=True)
+    outdir = args['outdir']
+    slug = args['slug']
+    os.makedirs(_dir_cache(outdir, slug), exist_ok=True)
 
-    soc = crawl(args['cookies'], args['slug'], args['isSpec'], args['outdir'], args['n_worker'])
+    config_logger(_file_log(outdir, slug))
 
-    dl_tasks = gather_dl_tasks(args['outdir'], soc)
+    soc = crawl(args['cookies'], slug, outdir)
 
-    if args['how'] == 'builtin':
-        download_ts(dl_tasks, args['slug'], args['outdir'], args['how'])
+    dl_tasks = gather_dl_tasks(outdir, soc)
 
-    elif args['how'] in ['curl', 'aria2']:
-        if args['generate_input_file']:
-            download_input_file(dl_tasks, args['slug'], args['outdir'], args['how'])
-        else:
-            download_ts(dl_tasks, args['slug'], args['outdir'], args['how'])
+    download(dl_tasks, slug, outdir)
 
-    elif args['how'] == 'aria2-rpc':
-        DownloaderAria2_rpc(dl_tasks=dl_tasks,
-                            url=args['aria2_rpc_url'],
-                            secret=args['aria2_rpc_secret']).download()
-
-    elif args['how'] == 'uget':
-        DownloaderUget(dl_tasks=dl_tasks).download()
-
-    print('', flush=True, end='')
-    print('\nDone :-)')
+    sys.stderr.flush()
+    print('Done :-)')
 
 
 if __name__ == '__main__':
