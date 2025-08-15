@@ -72,8 +72,7 @@ def crawl(cookies_file, slug, outdir):
     with TaskScheduler() as ts, requests.Session() as sess:
         with tqdm(
             desc='Crawling...',
-            bar_format='{desc} [{percentage:3.0f}%] {n_fmt}/{total_fmt} {bar}',
-            ncols=80,
+            bar_format='{bar:31} [{percentage:3.0f}%] {n_fmt}/{total_fmt} {desc}',
         ) as bar:
             total = 0
             done = 0
@@ -138,9 +137,8 @@ def download(dl_tasks, slug, outdir):
     with TaskScheduler() as ts:
         with tqdm(
             desc='Downloading...',
-            bar_format='{desc} [{percentage:3.0f}%] {n_fmt}/{total_fmt} {bar}',
+            bar_format='{bar:31} [{percentage:3.0f}%] {n_fmt}/{total_fmt} {desc}',
             total=len(dl_tasks),
-            ncols=80,
         ) as bar:
 
             def _hook_done():

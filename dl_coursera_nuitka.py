@@ -18,6 +18,7 @@ def main():
         f"""python -m nuitka
             --follow-imports --standalone --onefile --assume-yes-for-downloads
             --include-module=lxml.etree
+            --include-package-data=dl_coursera.resource
             --output-dir=__data/{outdir}
             --output-filename={exe}
             dl_coursera_run.py""".split(),
