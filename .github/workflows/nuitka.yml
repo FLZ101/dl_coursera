@@ -33,9 +33,13 @@ jobs:
       run: |
         python dl_coursera_nuitka.py
 
+    # https://docs.github.com/en/actions/tutorials/store-and-share-data
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: dl_coursera
-        path: __data/*.zip
+        name: dl_coursera-${{ matrix.os }}
+        path: |
+          __data/*.zip
         retention-days: 13
+        compression-level: 0
+        if-no-files-found: error

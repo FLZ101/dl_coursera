@@ -15,7 +15,8 @@ def main():
     env = dict(os.environ)
     env['PYTHONPATH'] = os.getcwd()
     subprocess.run(
-        f"""python -m nuitka --follow-imports --standalone --onefile
+        f"""python -m nuitka
+            --follow-imports --standalone --onefile --assume-yes-for-downloads
             --include-module=lxml.etree
             --output-dir=__data/{outdir}
             --output-filename={exe}
