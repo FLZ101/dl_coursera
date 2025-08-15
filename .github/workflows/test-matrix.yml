@@ -8,7 +8,7 @@ on: workflow_dispatch
 
 jobs:
   build-and-test:
-    uses: FLZ101/dl_coursera/.github/workflows/single-test.yml@master
+    uses: FLZ101/dl_coursera/.github/workflows/test-1.yml@master
     strategy:
       fail-fast: false
       matrix:
