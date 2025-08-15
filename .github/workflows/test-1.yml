@@ -41,7 +41,7 @@ jobs:
           pip install -r requirements-dev.txt
 
       - name: Check code style
-        run: black --diff
+        run: black --diff .
 
       # https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-variables#detecting-the-operating-system
 
