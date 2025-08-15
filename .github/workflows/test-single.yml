@@ -1,0 +1,17 @@
+# https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
+
+name: Test (single)
+
+on:
+  push:
+    paths:
+      - "**.py"
+      - ".github/workflows/test-single.yml"
+      - ".github/workflows/test-1.yml"
+
+jobs:
+  build-and-test:
+    uses: FLZ101/dl_coursera/.github/workflows/test-1.yml@master
+    with:
+      os: ubuntu-latest
+      python-version: "3.12"

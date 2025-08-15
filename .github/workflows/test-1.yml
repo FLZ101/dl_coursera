@@ -9,11 +9,13 @@ on:
       python-version:
         required: true
         type: string
-    secrets: inherit
 
 jobs:
   build-and-test:
     runs-on: ${{ inputs.os }}
+
+    # https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/deploy-to-environment
+    environment: Test
 
     env:
       # https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#secrets-context
@@ -21,9 +23,12 @@ jobs:
 
     defaults:
       run:
-        shell: ${{ runner.os == 'Windows' && 'cmd' || 'bash' }}
+        shell: ${{ startsWith(inputs.os, 'windows') && 'cmd' || 'bash' }}
 
     steps:
+      # https://github.com/actions/checkout
+      - uses: actions/checkout@v4
+
       - name: Set up Python ${{ inputs.python-version }}
         uses: actions/setup-python@v3
         with:
@@ -34,6 +39,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
+
+      - name: Check code style
+        run: black --diff
 
       # https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-variables#detecting-the-operating-system
 
