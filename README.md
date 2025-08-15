@@ -1,203 +1,57 @@
-[![](https://travis-ci.com/FLZ101/dl_coursera.svg?branch=master)](https://travis-ci.com/FLZ101/dl_coursera/builds)[![](https://img.shields.io/pypi/v/dl_coursera)](https://pypi.org/project/dl-coursera/)[![](https://img.shields.io/github/license/FLZ101/dl_coursera)](https://github.com/FLZ101/dl_coursera/blob/master/LICENSE.txt)
+[![](https://img.shields.io/pypi/v/dl_coursera)](https://pypi.org/project/dl-coursera/)[![](https://github.com/FLZ101/dl_coursera/actions/workflows/Test.yml/badge.svg)](https://github.com/FLZ101/dl_coursera/actions/workflows/Test.yml)[![](https://img.shields.io/github/license/FLZ101/dl_coursera)](https://github.com/FLZ101/dl_coursera/blob/master/LICENSE.txt)[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 ## Todo
 
 - [x] Lectures (videos, subtitles, slides)
 - [x] Readings
-- [ ] Quizs
 - [ ] Jupyter notebooks
+- [ ] Quizs
 
 ## Install
 
-Python **⩾3.5** is required. It is **RECOMMENDED** to install `dl_coursera` in a virtual environment.
+Python **⩾3.8** is required.
+
+Install the `dl_coursera` package in a virtual environment.
 
 ```
-# make sure you have Python ⩾3.5
-$ python -c "from __future__ import print_function; import sys; print(':-)' if sys.version_info >= (3, 5) else ':-(')"
-:-)
-
-# install the latest version of dl_coursera
 $ pip install -U dl_coursera
 $ dl_coursera --version
 ```
 
 ## How-to
 
-1. Get the **cookies.txt** file
+1. Get the cookies file
 
-   Sign in to [Coursera](https://www.coursera.org/), then use a browser extension to export cookies as **cookies.txt**. The **cookies.txt** will expire in about two weeks, so you don't need to do this so frequently.
+   Sign into [Coursera](https://www.coursera.org/), then use a browser extension to export cookies as a cookies file which will expire in about two weeks.
 
-   For **Chrome**, you can use the [cookies.txt](https://chrome.google.com/webstore/detail/cookiestxt/njabckikapfpffapmjgojcnbfjonfjfg) extension.
+   For Chrome/Edge/Firefox, you can use the **Cookie-Editor** extension.
 
-   ![](https://raw.githubusercontent.com/feng-lei/dl_coursera/master/doc/1.png)
-
-   For **Firefox**, you can use the [Export Cookies](https://addons.mozilla.org/en-US/firefox/addon/export-cookies-txt/?src=search) extension.
-
-   ![](https://raw.githubusercontent.com/feng-lei/dl_coursera/master/doc/2.png)
+   ![](https://raw.githubusercontent.com/FLZ101/dl_coursera/master/doc/cookies.png)
 
 2. Enroll
 
-   Navigate to homepage of the **course**/**specialization** you'd like to download, you can see its **slug** at the address bar. **Enroll** in it.
+   Navigate to homepage of the **specialization**/**course** you'd like to download, you can see its **slug** at the address bar. **Enroll** in.
 
-   ![](https://raw.githubusercontent.com/feng-lei/dl_coursera/master/doc/0.png)
+   ![](https://raw.githubusercontent.com/FLZ101/dl_coursera/master/doc/enroll.png)
 
 3. Download
 
    ```
-   $ dl_coursera --help
-   usage: dl_coursera [-h] [--version] [--cookies COOKIES] --slug SLUG [--isSpec]
-                      [--n-worker {1,2,3,4,5}] [--outdir OUTDIR] --how
-                      {builtin,curl,aria2,aria2-rpc,uget,dummy}
-                      [--generate-input-file] [--aria2-rpc-url ARIA2_RPC_URL]
-                      [--aria2-rpc-secret ARIA2_RPC_SECRET]
-
-   A simple, fast, and reliable Coursera crawling & downloading tool
-
-   optional arguments:
-    -h, --help            show this help message and exit
-     --version             show program's version number and exit
-     --cookies COOKIES     path of the `cookies.txt`
-     --slug SLUG           slug of a course or a specializtion (with @--isSpec)
-     --isSpec              indicate that @--slug is slug of a specialization
-     --n-worker {1,2,3,4,5}
-                           the number of threads used to crawl webpages. Default:
-                           3
-     --outdir OUTDIR       the directory to save files to. Default: `.'
-     --how {builtin,curl,aria2,aria2-rpc,uget,dummy}
-                           how to download files. builtin (NOT recommonded): use
-                           the builtin downloader. curl: invoke `curl` or
-                           generate an "input file" for it (with @--generate-
-                           input-file). aria2: invoke `aria2c` or generate an
-                           "input file" for it (with @--generate-input-file).
-                           aria2-rpc (HIGHLY recommonded): add downloading tasks
-                           to aria2 through its XML-RPC interface. uget
-                           (recommonded): add downloading tasks to the uGet
-                           Download Manager
-     --generate-input-file
-                           when @--how is curl/aria2, indicate that to generate
-                           an "input file" for that tool, rather than to invoke
-                           it
-     --aria2-rpc-url ARIA2_RPC_URL
-                           url of the aria2 XML-RPC interface. Default:
-                           `http://localhost:6800/rpc'
-     --aria2-rpc-secret ARIA2_RPC_SECRET
-                           authorization token of the aria2 XML-RPC interface
-
-   If the command succeeds, you shall see `Done :-)`. If some UNEXPECTED errors
-   occur, try decreasing the value of @--n-worker and/or removing the directory
-   @--outdir. For more information, visit `https://github.com/feng-lei/dl_coursera`.
+   dl_coursera --cookies path_of_the_cookies_file --outdir output_directory slug
    ```
 
-   ```
-   # download the course, of which slug is "mathematical-thinking"
-   # saving files to the directory "mt"
-   # using the "built-in" downloader
-   $ dl_coursera --cookies path/to/cookies.txt --slug mathematical-thinking --outdir mt --how builtin
-   ```
+## Troubleshooting
 
-   ```
-   # download the specialization, of which slug is "algorithms"
-   # saving files to the directory "alg"
-   # using the "built-in" downloader
-   $ dl_coursera --cookies path/to/cookies.txt --slug algorithms --isSpec --outdir alg --how builtin --n-worker 1
-   ```
+1. Check your network
 
-## Examples
+2. Make sure you have enrolled in the specialization/course
 
-### using the "built-in" downloader
+3. If the cookies file might have expired, try getting a new one
 
-```
-$ dl_coursera --cookies path/to/cookies.txt --slug mathematical-thinking --outdir mt --how builtin
-```
+4. Try upgrading to the latest version
 
-### using the "curl" downloader
+5. Remove the directory `<output-directory>/<slug>/.cache` and try again
 
-```
-# make sure curl (https://curl.haxx.se/download.html) is installed and in PATH
-$ curl --version
-```
+6. Visit [the issues page](https://github.com/FLZ101/dl_coursera/issues?q=is:issue). You may find a solution if others has encountered similar issues.
 
-The "curl" downloader can be used in two different ways: invoking `curl`, or generating an input file for `curl`.
-
-#### invoke `curl`
-
-```
-$ dl_coursera --cookies path/to/cookies.txt --slug mathematical-thinking --outdir mt --how curl
-```
-
-#### generate an input file for `curl`
-
-```
-$ dl_coursera --cookies path/to/cookies.txt --slug mathematical-thinking --outdir mt --how curl --generate-input-file
-$ curl --config mt/mathematical-thinking.download.curl_input_file.txt
-```
-
-### using the "aria2" downloader
-
-```
-# make sure aria2 (https://aria2.github.io) is installed and in PATH
-$ aria2c --version
-```
-
-The "aria2" downloader can be used in two different ways: invoking `aria2c`, or generating an input file for `aria2c`.
-
-#### invoke `aria2c`
-
-```
-$ dl_coursera --cookies path/to/cookies.txt --slug mathematical-thinking --outdir mt --how aria2
-```
-
-#### generate an input file for `aria2c`
-
-```
-$ dl_coursera --cookies path/to/cookies.txt --slug mathematical-thinking --outdir mt --how aria2 --generate-input-file
-$ aria2c --input-file mt/mathematical-thinking.download.aria2_input_file.txt
-```
-
-### Using the "aria2-rpc" downloader
-
-```
-# make sure aria2 (https://aria2.github.io) is installed and in PATH
-$ aria2c --version
-```
-
-```
-# start aria2 with its XML-RPC interface enabled
-$ aria2c --enable-rpc
-```
-
-```
-$ dl_coursera --cookies path/to/cookies.txt --slug mathematical-thinking --outdir mt --how aria2-rpc
-```
-
-Using an aria2 GUI like [webui-aria2](https://github.com/ziahamza/webui-aria2) is highly recommended.
-
-![](https://raw.githubusercontent.com/feng-lei/dl_coursera/master/doc/3.png)
-
-### Using the "uget" downloader
-
-```
-# make sure uGet (https://sourceforge.net/projects/urlget/files/) is installed and in PATH
-
-## on Windows
-$ uget --version | more
-
-## on Linux
-$ uget-gtk --version
-```
-
-```
-# start uGet
-
-## on Windows
-$ uget
-
-## on Linux
-$ uget-gtk &
-```
-
-```
-$ dl_coursera --cookies path/to/cookies.txt --slug mathematical-thinking --outdir mt --how uget
-```
-
-![](https://raw.githubusercontent.com/feng-lei/dl_coursera/master/doc/4.png)
+   Or you could create a new issue describing what is going wrong and the steps to reproduce it. Don't forget to attach the file `<output-directory>/<slug>/.cache/<slug>.log` if it exists.

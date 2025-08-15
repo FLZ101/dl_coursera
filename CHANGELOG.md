@@ -1,3 +1,10 @@
+## 1.0.1
+
+* (01) Simplifies the user interface
+* (02) Adds a troubleshooting guide
+* (03) Adds Github CI
+* (04) Generate Nuitka binaries
+
 ## 0.1.2
 
 * (01) Removes `--email` and `--password`
