@@ -3,6 +3,7 @@ import os
 import sys
 import logging
 import shutil
+import re
 import xmlrpc.client
 
 import requests
@@ -19,9 +20,22 @@ class DownloaderCanNotWork(Exception):
     pass
 
 
+_url_pattern_github = re.compile(r'https://github.com/([^/]+)/([^/]+)/blob/(.+)')
+
+
+def _fix_url(url):
+    m = _url_pattern_github.fullmatch(url)
+    if m:
+        return f'https://raw.githubusercontent.com/{m.group(1)}/{m.group(2)}/refs/heads/{m.group(3)}'
+    return url
+
+
 class Downloader:
     def __init__(self, *, dl_tasks):
         self._dl_tasks = dl_tasks
+
+        for _ in self._dl_tasks:
+            _['url'] = _fix_url(_['url'])
 
     def download(self):
         pass
