@@ -29,7 +29,7 @@ _urls = [
 ]
 
 _outdir = '__data/example/downloader'
-
+os.makedirs(_outdir, exist_ok=True)
 
 def _file_json_dl_tasks_failed(how):
     return os.path.join(_outdir, how, 'dl_tasks_failed.json')

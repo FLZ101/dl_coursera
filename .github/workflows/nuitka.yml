@@ -1,0 +1,41 @@
+
+# https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
+
+name: Nuitka
+on: workflow_dispatch
+
+jobs:
+  nuitka:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # https://github.com/actions/runner-images?tab=readme-ov-file#available-images
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      # https://github.com/actions/checkout
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: 3.12
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-deploy.txt
+
+    - name: Generate artifacts
+      run: |
+        python dl_coursera_nuitka.py
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dl_coursera
+        path: __data/*.zip
+        retention-days: 13

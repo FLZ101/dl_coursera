@@ -8,6 +8,8 @@ import textwrap
 
 import requests
 
+from tqdm import tqdm
+
 import dl_coursera
 
 from dl_coursera.lib.misc import change_ext, get_latest_app_version
@@ -68,11 +70,10 @@ def crawl(cookies_file, slug, outdir):
         assert 'errorCode' not in d
 
     with TaskScheduler() as ts, requests.Session() as sess:
-        from tqdm import tqdm
-
         with tqdm(
             desc='Crawling...',
             bar_format='{desc} [{percentage:3.0f}%] {n_fmt}/{total_fmt} {bar}',
+            ncols=80,
         ) as bar:
             total = 0
             done = 0
@@ -135,12 +136,11 @@ def download(dl_tasks, slug, outdir):
         return
 
     with TaskScheduler() as ts:
-        from tqdm import tqdm
-
         with tqdm(
             desc='Downloading...',
             bar_format='{desc} [{percentage:3.0f}%] {n_fmt}/{total_fmt} {bar}',
             total=len(dl_tasks),
+            ncols=80,
         ) as bar:
 
             def _hook_done():
