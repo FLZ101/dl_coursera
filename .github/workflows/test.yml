@@ -1,0 +1,30 @@
+# https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
+
+name: Test
+
+# https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow
+# https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch
+on: workflow_dispatch
+
+jobs:
+  build-and-test:
+    # https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/deploy-to-environment
+    environment: Test
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # https://github.com/actions/runner-images?tab=readme-ov-file#available-images
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.8", "3.10", "3.12"]
+
+    steps:
+      # https://github.com/actions/checkout
+      - uses: actions/checkout@v4
+
+      - uses: FLZ101/dl_coursera/.github/workflows/single-test.yml@master
+        with:
+          os: ${{ matrix.os }}
+          python-version: ${{ matrix.python-version }}

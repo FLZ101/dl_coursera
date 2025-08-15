@@ -1,0 +1,52 @@
+# https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        type: string
+      python-version:
+        required: true
+        type: string
+    secrets: inherit
+
+jobs:
+  build-and-test:
+    runs-on: ${{ inputs.os }}
+
+    env:
+      # https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#secrets-context
+      DL_COURSERA_COOKIES_BASE64: ${{ secrets.DL_COURSERA_COOKIES_BASE64 }}
+
+    defaults:
+      run:
+        shell: ${{ runner.os == 'Windows' && 'cmd' || 'bash' }}
+
+    steps:
+      - name: Set up Python ${{ inputs.python-version }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      # https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-variables#detecting-the-operating-system
+
+      - run: |
+          echo "PYTHONPATH=$(pwd):$PYTHONPATH" >> $GITHUB_ENV
+        if: runner.os != 'Windows'
+
+      # PYTHONPATH ending with ; might cause errors
+      - run: |
+          echo PYTHONPATH=%cd% >> %GITHUB_ENV%
+        if: runner.os == 'Windows'
+
+      - name: Run tests
+        run: |
+          python -m unittest -v
+          python example/Crawler.py
