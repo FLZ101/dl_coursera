@@ -40,6 +40,15 @@ $ dl_coursera --version
    dl_coursera --cookies path_of_the_cookies_file --outdir output_directory slug
    ```
 
+   For example:
+
+   ```
+   $ dl_coursera --cookies cookies.txt --outdir __data advanced-modeling
+   ███████████████████████████████ [100%] 56/56 Crawling...
+   ███████████████████████████████ [100%] 212/212 Downloading...
+   Done :-)
+   ```
+
 ## Troubleshooting
 
 1. Check your network
@@ -54,4 +63,4 @@ $ dl_coursera --version
 
 6. Visit [the issues page](https://github.com/FLZ101/dl_coursera/issues?q=is:issue). You may find a solution if others has encountered similar issues.
 
-   Or you could create a new issue describing what is going wrong and the steps to reproduce it. Don't forget to attach the file `<output-directory>/<slug>/.cache/<slug>.log` if it exists.
+   Or you could create a new issue describing what is going wrong and the steps to reproduce it. Don't forget to attach the file `<output-directory>/<slug>/.cache/main.log` if it exists.

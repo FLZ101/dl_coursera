@@ -333,7 +333,10 @@ class Crawler:
                 name = _asset_name(_['name'], _['fileExtension'])
                 assets.append(Asset(id_=id_, url=url, name=name))
 
-            assert len(assets) == len(ids)
+            if len(assets) != len(ids):
+                logging.warning(
+                    '[crawl_assets] unexpected number of assets\n%s\n%s' % (ids, assets)
+                )
             return assets
 
         def _asset_name(name, fileExtension):
