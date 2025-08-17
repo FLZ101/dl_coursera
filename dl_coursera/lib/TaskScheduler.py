@@ -18,7 +18,7 @@ class Task:
     class ShouldNotRun(Exception):
         pass
 
-    def __init__(self, *, priority, ttl, _isSpecial=False):
+    def __init__(self, *, priority, ttl, _is_special=False):
         """
         @priority: should be a string that matches the following Python regular expression: `[A-Z]{1, 6}`
         @ttl: maximum times to try
@@ -27,7 +27,7 @@ class Task:
         self._priority = priority
         self._ttl = ttl
 
-        if not _isSpecial:
+        if not _is_special:
             assert Task._re_priority.match(self._priority) is not None
 
     def __lt__(self, other):
@@ -47,7 +47,7 @@ class Task:
         pass
 
 
-_shutdown_task = Task(priority=Task.HIGHEST_PRIO, ttl=1, _isSpecial=True)
+_shutdown_task = Task(priority=Task.HIGHEST_PRIO, ttl=1, _is_special=True)
 
 
 class FuncTask(Task):

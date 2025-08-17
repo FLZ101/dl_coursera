@@ -1,7 +1,6 @@
 import os
 import zipfile
 import io
-import re
 import logging
 
 from .lib.ExploringTree import ExploringTree
@@ -9,8 +8,7 @@ from .lib.ExploringTree import ExploringTree
 from .markup import render_supplement
 
 from .resource import load_resource
-from .define import URL_ROOT
-from .markup import CML
+from .define import *
 
 
 def _shorten_slug(x):

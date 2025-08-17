@@ -78,6 +78,24 @@ def URL_SUPPLEMENT(id_course, id_supplement):
     )
 
 
+def URL_UNGRADED_LAB(uid, id_course, id_ungraded_lab):
+    return (
+        URL_ROOT
+        + f'/api/onDemandWorkspaceLaunchers.v2/{uid}~{id_course}~{id_ungraded_lab}?fields=id,userId,courseId,itemId,templateId,isStandardSubmission,isFileBrowserEnabled,description,offlineInstructions,sharedWorkspaceUrl,label,shareConfig,inLabInstructionsParts,contentPath,imageApplicationType,workspaceLauncherId'
+    )
+
+
+def URL_WORKSPACE(uid, id_course, id_ungraded_lab):
+    return (
+        URL_ROOT
+        + f'/api/onDemandLearnerWorkspaces.v1/?action=launch&id={uid}~{id_course}~{id_ungraded_lab}'
+    )
+
+
+def URL_WORKSPACE_DOWNLOAD(id_):
+    return f'https://hub.labs.coursera.org/api/workspaceFileBrowser.v1/{id_}?command=Download&arguments=[]'
+
+
 def URL_ASSET(ids):
     return (
         URL_ROOT
@@ -103,12 +121,6 @@ class CourseNotExistExcepton(DlCourseraException):
         self.slug = slug
 
 
-class NotFoundExcepton(DlCourseraException):
-    def __init__(self, slug):
-        super().__init__('The specialization/course %s is not found' % slug)
-        self.slug = slug
-
-
 class CookiesExpiredException(DlCourseraException):
     def __init__(self):
         super().__init__('The cookies.txt expired')
@@ -118,6 +130,11 @@ class BadResponseException(DlCourseraException):
     def __init__(self, d):
         super().__init__('Bad response: %s' % d)
         self.d = d
+
+
+class UserIDNotFoundException(DlCourseraException):
+    def __init__(self):
+        super().__init__('The user ID is not found')
 
 
 class Spec(MyDict):
@@ -141,6 +158,7 @@ class Course(MyDict):
         self['slug'] = slug
         self['modules'] = []
         self['references'] = []
+        self['workspaces'] = []
 
 
 class CourseReference(MyDict):
@@ -210,16 +228,6 @@ class CourseMaterialSupplementItemCML(CourseMaterialSupplementItem):
         self['type'] = 'CML'
         self['html'] = html
         self['assets'] = assets
-
-
-class CourseMaterialNotebook(MyDict):
-    def __init__(self, *, id_=None, name=None, slug=None):
-        super().__init__()
-
-        self['type'] = 'Notebook'
-        self['id'] = id_
-        self['name'] = name
-        self['slug'] = slug
 
 
 class Video(MyDict):

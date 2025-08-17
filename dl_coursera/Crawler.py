@@ -4,6 +4,8 @@ import base64
 
 from http.cookiejar import MozillaCookieJar
 
+import requests
+
 from .define import *
 
 from .lib.misc import format_dict, TmpFile
@@ -14,29 +16,28 @@ PRIO_COURSE = 'B'
 PRIO_COURSE_MATERIAL = 'C'
 
 
-class Crawler:
-    @staticmethod
-    def _login(sess, cookies_file=None, cookies_base64=None):
-        if cookies_file is None:
-            if cookies_base64 is None:
-                # the env should contain $(base64 -w 0 cookies.txt)
-                cookies_base64 = os.environ.get('DL_COURSERA_COOKIES_BASE64')
-                assert cookies_base64
+def login(sess, cookies_file=None):
+    if cookies_file is None:
+        # the env should contain $(base64 -w 0 cookies.txt)
+        cookies_base64 = os.environ.get('DL_COURSERA_COOKIES_BASE64')
+        assert cookies_base64
 
-            cookies = base64.standard_b64decode(cookies_base64)
+        cookies = base64.standard_b64decode(cookies_base64)
 
-            with TmpFile() as tmpfile:
-                with open(tmpfile, 'wb') as ofs:
-                    ofs.write(cookies)
+        with TmpFile() as tmpfile:
+            with open(tmpfile, 'wb') as ofs:
+                ofs.write(cookies)
 
-                cj = MozillaCookieJar()
-                cj.load(tmpfile)
-        else:
             cj = MozillaCookieJar()
-            cj.load(cookies_file)
+            cj.load(tmpfile)
+    else:
+        cj = MozillaCookieJar()
+        cj.load(cookies_file)
 
-        sess.cookies.update(cj)
+    sess.cookies.update(cj)
 
+
+class Crawler:
     @staticmethod
     def _get(sess, url):
         resp = sess.get(url)
@@ -45,12 +46,21 @@ class Crawler:
             raise BadResponseException(d)
         return d
 
-    def __init__(self, *, ts, sess, cookies_file=None):
+    @staticmethod
+    def _post(sess: requests.Session, url, json: dict = {}):
+        resp = sess.post(url, json=json)
+        d = resp.json()
+        if 'errorCode' in d:
+            raise BadResponseException(d)
+        return d
+
+    def __init__(self, *, ts, sess: requests.Session, cookies_file=None):
         self._ts = ts
         self._sess = sess
         self._cookies_file = cookies_file
 
         self._loggedin = False
+        self._uid: str = None
 
         def attach(func):
             setattr(self, func.__name__, func)
@@ -122,10 +132,14 @@ class Crawler:
                     'discussionPrompt',
                     'gradedProgramming',
                     'programming',
+                    'staffGraded',
+                    'ungradedLti',
+                    'notebook',
+                    'ungradedLab',
                 ]:
                     continue
 
-                if typeName not in ['lecture', 'notebook', 'supplement']:
+                if typeName not in ['lecture', 'supplement']:
                     logging.warning(
                         '[crawl_course] unknown typeName=%s\n%s' % (typeName, _)
                     )
@@ -137,10 +151,6 @@ class Crawler:
 
                 if typeName == 'lecture':
                     id2item[_['id']] = CourseMaterialLecture(
-                        id_=_['id'], name=_['name'], slug=_['slug']
-                    )
-                elif typeName == 'notebook':
-                    id2item[_['id']] = CourseMaterialNotebook(
                         id_=_['id'], name=_['name'], slug=_['slug']
                     )
                 elif typeName == 'supplement':
@@ -186,6 +196,16 @@ class Crawler:
                         elif item['type'] == 'Supplement':
                             crawl_supplement(course=course, supplement=item)
 
+        def _cook_cml(course, cml: CML):
+            assets, assetIDs, refids = cml.get_resources()
+            assets += crawl_assets(assetIDs)
+            html = cml.to_html(assets=assets)
+
+            for refid in refids:
+                crawl_course_reference(course=course, id_ref=refid)
+
+            return CourseMaterialSupplementItemCML(html=html, assets=assets)
+
         def _crawl_course_ref(course, id_ref=None):
             if not id_ref:
                 d = Crawler._get(sess, URL_COURSE_REFERENCES(course['id']))
@@ -206,16 +226,7 @@ class Crawler:
                 typeName = _['typeName']
                 if typeName == 'cml':
                     cml = CML(_['definition']['value'])
-                    assets, assetIDs, refids = cml.get_resources()
-                    assets += crawl_assets(assetIDs)
-                    html = cml.to_html(assets=assets)
-
-                    itemId2ref[_['id']]['item'] = CourseMaterialSupplementItemCML(
-                        html=html, assets=assets
-                    )
-
-                    for refid in refids:
-                        crawl_course_reference(course=course, id_ref=refid)
+                    itemId2ref[_['id']]['item'] = _cook_cml(course, cml)
                 else:
                     logging.warning(
                         "[_crawl_course_ref] unknown typeName=%s\n%s" % (typeName, _)
@@ -305,16 +316,7 @@ class Crawler:
                 typeName = _['typeName']
                 if typeName == 'cml':
                     cml = CML(_['definition']['value'])
-                    assets, assetIDs, refids = cml.get_resources()
-                    assets += crawl_assets(assetIDs)
-                    html = cml.to_html(assets=assets)
-
-                    supplement['items'].append(
-                        CourseMaterialSupplementItemCML(html=html, assets=assets)
-                    )
-
-                    for refid in refids:
-                        crawl_course_reference(course=course, id_ref=refid)
+                    supplement['items'].append(_cook_cml(course, cml))
                 else:
                     logging.warning(
                         "[crawl_supplement] unknown typeName=%s\n%s" % (typeName, _)
@@ -347,14 +349,36 @@ class Crawler:
 
     def login(self):
         if not self._loggedin:
-            Crawler._login(self._sess, self._cookies_file)
+            login(self._sess, self._cookies_file)
             self._loggedin = True
 
-    def crawl(self, *, slug, isSpec):
+            for x in self._sess.cookies:
+                if 'userId' in x.name:
+
+                    # g:20580072|e:undefined|c:1754026047404|l:1754059501489
+                    def _get_uid(s: str):
+                        for _1 in s.split('|'):
+                            _2 = _1.split(':')
+                            if len(_2) != 2:
+                                return None
+                            k, v = _2
+                            if k == 'g':
+                                return v
+                        return None
+
+                    from urllib.parse import unquote
+
+                    self._uid = _get_uid(unquote(x.value))
+                    break
+
+            if not self._uid:
+                raise UserIDNotFoundException()
+
+    def crawl(self, *, slug, is_spec):
         if not self._loggedin:
             self.login()
 
-        if isSpec:
+        if is_spec:
             res = Spec(slug=slug)
             self.crawl_spec(spec=res)
         else:

@@ -36,7 +36,7 @@ def test_crawler():
             'understanding-arguments',
             'yoga',
         ]
-        crawler.crawl(slug=random.choice(_), isSpec=False)
+        crawler.crawl(slug=random.choice(_), is_spec=False)
 
 
 if __name__ == '__main__':

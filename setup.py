@@ -18,7 +18,7 @@ setuptools.setup(
     author='fengleizZZ',
     author_email='fenglei4518@hotmail.com',
     description='A simple, fast, and reliable Coursera crawling & downloading tool',
-    long_description=_read('README.md'),
+    long_description=_readlines('README.md')[0],
     long_description_content_type='text/markdown',
     url='https://github.com/FLZ101/dl_coursera',
     keywords=[

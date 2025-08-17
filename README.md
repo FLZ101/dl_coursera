@@ -3,7 +3,7 @@
 ## Todo
 
 - [x] Lectures (videos, subtitles, slides)
-- [x] Readings
+- [x] Reading materials
 - [ ] Jupyter notebooks
 - [ ] Quizs
 
@@ -31,28 +31,29 @@ Alternatively, you can download `dl_coursera` as a single executable from [https
 
    For Chrome/Edge/Firefox, you can use the **Cookie-Editor** extension.
 
-   ![](https://raw.githubusercontent.com/FLZ101/dl_coursera/master/doc/cookies.png)
+   ![](doc/cookies.png)
 
 2. Enroll
 
    Navigate to homepage of the **specialization**/**course** you'd like to download, you can see its **slug** at the address bar. **Enroll** in.
 
-   ![](https://raw.githubusercontent.com/FLZ101/dl_coursera/master/doc/enroll.png)
+   ![](doc/enroll.png)
 
 3. Download
+
+   To download a specialization:
+
+   ```
+   dl_coursera --spec --cookies path_of_the_cookies_file --outdir output_directory slug
+   ```
+
+   To download a course:
 
    ```
    dl_coursera --cookies path_of_the_cookies_file --outdir output_directory slug
    ```
 
-   For example:
-
-   ```
-   $ dl_coursera --cookies cookies.txt --outdir __data advanced-modeling
-   ███████████████████████████████ [100%] 56/56 Crawling...
-   ███████████████████████████████ [100%] 212/212 Downloading...
-   Done :-)
-   ```
+   ![](doc/run.png)
 
 ## Troubleshooting
 
