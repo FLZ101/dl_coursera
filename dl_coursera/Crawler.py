@@ -352,29 +352,6 @@ class Crawler:
             login(self._sess, self._cookies_file)
             self._loggedin = True
 
-            for x in self._sess.cookies:
-                if 'userId' in x.name:
-
-                    # g:20580072|e:undefined|c:1754026047404|l:1754059501489
-                    def _get_uid(s: str):
-                        for _1 in s.split('|'):
-                            _2 = _1.split(':')
-                            if len(_2) != 2:
-                                return None
-                            k, v = _2
-                            if k == 'g':
-                                return v
-                        return None
-
-                    from urllib.parse import unquote
-
-                    self._uid = _get_uid(unquote(x.value))
-                    break
-
-            if not self._uid:
-                logging.warning("UserID not found in cookies, but ignoring as it seems unused.")
-                # raise UserIDNotFoundException()
-
     def crawl(self, *, slug, is_spec):
         if not self._loggedin:
             self.login()

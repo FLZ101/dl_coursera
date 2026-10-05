@@ -1,6 +1,8 @@
 import os
 import tempfile
 
+import dl_coursera
+
 
 def format_dict(d):
     return ', '.join(['%s=%s' % (k, v) for k, v in d.items()])
@@ -39,10 +41,18 @@ class TmpFile:
         pass
 
 
+def parse_version(s: str):
+    return [int(_) for _ in s.split('.')]
+
+
 def get_latest_app_version():
     import requests
 
     resp = requests.get('https://pypi.org/pypi/dl-coursera/json')
     d = resp.json()
 
-    return sorted(d['releases'].keys())[-1]
+    return parse_version(max(d['releases'].keys()))
+
+
+def get_current_app_version():
+    return parse_version(dl_coursera.app_version)
