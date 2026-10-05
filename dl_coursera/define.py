@@ -217,6 +217,17 @@ class CourseMaterialSupplement(MyDict):
         self['items'] = []
 
 
+class CourseMaterialQuiz(MyDict):
+    def __init__(self, *, id_=None, name=None, slug=None):
+        super().__init__()
+
+        self['type'] = 'Quiz'
+        self['id'] = id_
+        self['name'] = name
+        self['slug'] = slug
+        self['items'] = []
+
+
 class CourseMaterialSupplementItem(MyDict):
     pass
 

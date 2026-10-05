@@ -3,38 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <title>{{ title }}</title>
-  <script src="{{ resource_path }}/jquery.js"></script>
+  <link rel="stylesheet" href="{{ resource_path }}/katex/katex.min.css">
+  <script src="{{ resource_path }}/katex/katex.min.js"></script>
   <script>
-    $(function () {
-      var math_spans = $('span[hasMath="true"]');
-      if (math_spans.length > 0) {
-        load_css('{{ resource_path }}/katex/katex.min.css');
-        load_js('{{ resource_path }}/katex/katex.min.js', function () {
-          math_spans.each(function () {
-            katex.render($(this).text(), this, { throwOnError: false });
+    document.addEventListener('DOMContentLoaded', function () {
+      var math_spans = document.querySelectorAll(
+        'span[hasmath="true"], span[hasMath="true"]'
+      );
+
+      for (var i = 0; i < math_spans.length; i++) {
+        try {
+          katex.render(math_spans[i].textContent, math_spans[i], {
+            throwOnError: false
           });
-        });
+        } catch (e) {
+          // Keep the original LaTeX text if rendering fails.
+        }
       }
     });
-
-    function load_css(url) {
-      $('<link>')
-        .appendTo('head')
-        .attr({
-          type: 'text/css',
-          rel: 'stylesheet',
-          href: url
-        });
-    }
-
-    function load_js(url, func) {
-      $('<script>')
-        .appendTo('head')
-        .attr({
-          src: url
-        })
-        .on('load', func);
-    }
   </script>
   <style>
     .content-container {
@@ -69,6 +55,35 @@
 
     th, td {
       padding: 0 10px;
+    }
+
+    .quiz-options {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .quiz-options li {
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+    }
+
+    .quiz-options input[type='checkbox'],
+    .quiz-options input[type='radio'] {
+      flex: 0 0 auto;
+      margin: 0;
+    }
+
+    .quiz-option-text p:first-child {
+      margin-top: 0;
+    }
+
+    .quiz-option-text p:last-child {
+      margin-bottom: 0;
+    }
+
+    .quiz-option-text p {
+      margin: 0;
     }
   </style>
 </head>

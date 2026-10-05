@@ -5,7 +5,7 @@
 - [x] Lectures (videos, subtitles, slides)
 - [x] Reading materials
 - [ ] Jupyter notebooks
-- [ ] Quizs
+- [x] Quizzes
 
 ## Install
 
@@ -53,7 +53,15 @@ Alternatively, you can download `dl_coursera` as a single executable from [https
    dl_coursera --cookies path_of_the_cookies_file --outdir output_directory slug
    ```
 
+   Extra options:
+
+   * `--quiz`: include quizzes
+
    ![](doc/run.png)
+
+## Note
+
+* If math symbols do not render or images do not show in downloaded HTML files, the browser may be opening them from a Flatpak sandbox path such as `file:///run/user/1000/doc/...`, which prevents loading the local `resource/` files. Open the files with a non-Flatpak browser, drag the directory containing `resource/` into the browser window, or make the output directory accessible to the Flatpak sandbox.
 
 ## Troubleshooting
 

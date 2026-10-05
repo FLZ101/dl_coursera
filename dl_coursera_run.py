@@ -12,7 +12,11 @@ from tqdm import tqdm
 
 import dl_coursera
 
-from dl_coursera.lib.misc import change_ext, get_latest_app_version, get_current_app_version
+from dl_coursera.lib.misc import (
+    change_ext,
+    get_latest_app_version,
+    get_current_app_version,
+)
 from dl_coursera.lib.TaskScheduler import TaskScheduler
 from dl_coursera.Crawler import Crawler, login
 from dl_coursera.DLTaskGatherer import DLTaskGatherer
@@ -40,7 +44,46 @@ def _file_json_download_dl_tasks_failed(outdir, slug):
     return os.path.join(_dir_cache(outdir, slug), 'download.dl_tasks_failed.json')
 
 
-def crawl(cookies_file, slug, outdir, is_spec):
+def _file_json_options(outdir, slug):
+    return os.path.join(_dir_cache(outdir, slug), 'options.json')
+
+
+def _options_for_cache(args):
+    return {'quiz': args['quiz']}
+
+
+def _refresh_cache(outdir, slug, args):
+    """Invalidate cached crawl/download state when cache-affecting options change."""
+
+    options = _options_for_cache(args)
+    options_file = _file_json_options(outdir, slug)
+
+    if os.path.exists(options_file):
+        try:
+            with open(options_file, encoding='UTF-8') as ifs:
+                if json.load(ifs) == options:
+                    return
+        except (OSError, ValueError):
+            pass
+
+    file_pkl = _file_pkl_crawl(outdir, slug)
+    cache_files = [
+        file_pkl,
+        change_ext(file_pkl, 'json'),
+        _file_json_gather(outdir, slug),
+        _file_json_download_dl_tasks_failed(outdir, slug),
+    ]
+    for filename in cache_files:
+        try:
+            os.remove(filename)
+        except FileNotFoundError:
+            pass
+
+    with open(options_file, 'w', encoding='UTF-8') as ofs:
+        json.dump(options, ofs, indent=4)
+
+
+def crawl(cookies_file, slug, outdir, is_spec, include_quiz=False):
     file_pkl = _file_pkl_crawl(outdir, slug)
     if os.path.exists(file_pkl):
         with open(file_pkl, 'rb') as ifs:
@@ -99,7 +142,12 @@ def crawl(cookies_file, slug, outdir, is_spec):
                 hook_done=_hook_done,
                 hook_retry=_hook_retry,
             )
-            crawler = Crawler(ts=ts, sess=sess, cookies_file=cookies_file)
+            crawler = Crawler(
+                ts=ts,
+                sess=sess,
+                cookies_file=cookies_file,
+                include_quiz=include_quiz,
+            )
             soc = crawler.crawl(slug=slug, is_spec=is_spec)
 
     with open(file_pkl, 'wb') as ofs:
@@ -188,13 +236,11 @@ def main():
         allow_abbrev=False,
         add_help=True,
         description='A simple, fast, and reliable Coursera crawling & downloading tool',
-        epilog=textwrap.dedent(
-            """
+        epilog=textwrap.dedent("""
             If the command succeeds, you shall see `Done :-)`.
             If errors occur, visit `https://github.com/FLZ101/dl_coursera`
             for the troubleshooting guide.
-            """
-        ),
+            """),
     )
     parser.add_argument('--cookies', required=True, help='path of the cookies file')
     parser.add_argument(
@@ -202,6 +248,11 @@ def main():
     )
     parser.add_argument(
         '--spec', action='store_true', help='indicate that @slug is of a specialization'
+    )
+    parser.add_argument(
+        '--quiz',
+        action='store_true',
+        help='include quizzes',
     )
     parser.add_argument(
         '--version', action='version', version='%%(prog)s %s' % dl_coursera.app_version
@@ -223,8 +274,9 @@ def main():
     os.makedirs(_dir_cache(outdir, slug), exist_ok=True)
 
     config_logger(_file_log(outdir, slug))
+    _refresh_cache(outdir, slug, args)
 
-    soc = crawl(args['cookies'], slug, outdir, args['spec'])
+    soc = crawl(args['cookies'], slug, outdir, args['spec'], args['quiz'])
 
     dl_tasks = gather_dl_tasks(outdir, soc)
 
