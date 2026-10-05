@@ -1,3 +1,8 @@
+## 1.1.0
+
+* (01) Not check userId in cookies
+* (02) Supports downloading quizzes
+
 ## 1.0.1
 
 * (01) Simplifies the user interface

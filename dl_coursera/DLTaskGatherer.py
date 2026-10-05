@@ -148,6 +148,8 @@ class DLTaskGatherer:
                     self._gather_lecture(item, _i)
                 elif item['type'] == 'Supplement':
                     self._gather_supplement(item, _i)
+                elif item['type'] == 'Quiz':
+                    self._gather_quiz(item, _i)
 
     def _gather_lecture(self, lecture, i):
         _shorten_slug(lecture)
@@ -175,6 +177,9 @@ class DLTaskGatherer:
             for _i, item in enumerate(supplement['items']):
                 if item['type'] == 'CML':
                     self._gather_cml(item, _i, supplement)
+
+    def _gather_quiz(self, quiz, i):
+        self._gather_supplement(quiz, i)
 
     def _gather_cml(self, cml, i, supplement):
         import bs4

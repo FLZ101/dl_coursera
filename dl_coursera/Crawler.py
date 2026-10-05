@@ -1,6 +1,7 @@
 import os
 import logging
 import base64
+import html as html_lib
 
 from http.cookiejar import MozillaCookieJar
 
@@ -14,6 +15,413 @@ from .markup import CML
 PRIO_SPEC = 'A'
 PRIO_COURSE = 'B'
 PRIO_COURSE_MATERIAL = 'C'
+
+QUIZ_TYPE_NAMES = [
+    'staffGraded',
+    'ungradedAssignment',
+    'quiz',
+    'assessOpenSinglePage',
+]
+
+URL_GRAPHQL_GATEWAY = URL_ROOT + '/graphql-gateway'
+
+GRAPHQL_START_ATTEMPT = r'''
+mutation Submission_StartAttempt($courseId: ID!, $itemId: ID!) {
+  Submission_StartAttempt(input: {courseId: $courseId, itemId: $itemId}) {
+    ... on Submission_StartAttemptSuccess {
+      submissionState {
+        assignment {
+          id
+          __typename
+        }
+        __typename
+      }
+      __typename
+    }
+    ... on Submission_StartAttemptFailure {
+      errors {
+        errorCode
+        __typename
+      }
+      __typename
+    }
+    __typename
+  }
+}
+'''
+
+GRAPHQL_QUERY_QUIZ_STATE = r'''
+fragment CmlFields on CmlContent {
+  cmlValue
+  __typename
+}
+
+fragment HtmlFields on Submission_HtmlContent {
+  value
+  __typename
+}
+
+fragment ChoiceQuestion on Submission_MultipleChoiceQuestion {
+  partId: id
+  questionSchema {
+    prompt {
+      ...CmlFields
+      ...HtmlFields
+      __typename
+    }
+    options {
+      optionId: id
+      display {
+        ...CmlFields
+        ...HtmlFields
+        __typename
+      }
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment CheckboxQuestion on Submission_CheckboxQuestion {
+  partId: id
+  questionSchema {
+    prompt {
+      ...CmlFields
+      ...HtmlFields
+      __typename
+    }
+    options {
+      optionId: id
+      display {
+        ...CmlFields
+        ...HtmlFields
+        __typename
+      }
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment CheckboxReflectQuestion on Submission_CheckboxReflectQuestion {
+  partId: id
+  questionSchema {
+    prompt {
+      ...CmlFields
+      ...HtmlFields
+      __typename
+    }
+    options {
+      optionId: id
+      display {
+        ...CmlFields
+        ...HtmlFields
+        __typename
+      }
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment ReflectChoiceQuestion on Submission_MultipleChoiceReflectQuestion {
+  partId: id
+  questionSchema {
+    prompt {
+      ...CmlFields
+      ...HtmlFields
+      __typename
+    }
+    options {
+      optionId: id
+      display {
+        ...CmlFields
+        ...HtmlFields
+        __typename
+      }
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment TextQuestion on Submission_PlainTextQuestion {
+  partId: id
+  questionSchema {
+    prompt {
+      ...CmlFields
+      ...HtmlFields
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment RegexQuestion on Submission_RegexQuestion {
+  partId: id
+  questionSchema {
+    prompt {
+      ...CmlFields
+      ...HtmlFields
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment ExactTextQuestion on Submission_TextExactMatchQuestion {
+  partId: id
+  questionSchema {
+    prompt {
+      ...CmlFields
+      ...HtmlFields
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment ReflectTextQuestion on Submission_TextReflectQuestion {
+  partId: id
+  questionSchema {
+    prompt {
+      ...CmlFields
+      ...HtmlFields
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment RichTextQuestion on Submission_RichTextQuestion {
+  partId: id
+  questionSchema {
+    prompt {
+      ...CmlFields
+      ...HtmlFields
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment NumericQuestion on Submission_NumericQuestion {
+  partId: id
+  questionSchema {
+    prompt {
+      ...CmlFields
+      ...HtmlFields
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment UrlQuestion on Submission_UrlQuestion {
+  partId: id
+  questionSchema {
+    prompt {
+      ...CmlFields
+      ...HtmlFields
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment MathQuestion on Submission_MathQuestion {
+  partId: id
+  questionSchema {
+    prompt {
+      ...CmlFields
+      ...HtmlFields
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment CodeQuestion on Submission_CodeExpressionQuestion {
+  partId: id
+  questionSchema {
+    prompt {
+      ...CmlFields
+      ...HtmlFields
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment FileQuestion on Submission_FileUploadQuestion {
+  partId: id
+  questionSchema {
+    prompt {
+      ...CmlFields
+      ...HtmlFields
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment WidgetQuestion on Submission_WidgetQuestion {
+  partId: id
+  questionSchema {
+    prompt {
+      ...CmlFields
+      ...HtmlFields
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment FillableBlanksQuestion on Submission_MultipleFillableBlanksQuestion {
+  partId: id
+  questionSchema {
+    prompt {
+      ...CmlFields
+      ...HtmlFields
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment OffPlatformQuestion on Submission_OffPlatformQuestion {
+  partId: id
+  questionSchema {
+    prompt {
+      ...CmlFields
+      ...HtmlFields
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment TextBlockPart on Submission_TextBlock {
+  partId: id
+  title
+  body {
+    ...CmlFields
+    __typename
+  }
+  __typename
+}
+
+query QueryState($courseId: ID!, $itemId: ID!) {
+  SubmissionState {
+    queryState(courseId: $courseId, itemId: $itemId) {
+      __typename
+      ... on Submission_QueryStateFailure {
+        errors {
+          errorCode
+          __typename
+        }
+        __typename
+      }
+      ... on Submission_SubmissionState {
+        allowedAction
+        attempts {
+          inProgressAttempt {
+            draft {
+              id
+              instructions {
+                overview {
+                  ...CmlFields
+                  ...HtmlFields
+                  __typename
+                }
+                __typename
+              }
+              parts {
+                ...ChoiceQuestion
+                ...CheckboxQuestion
+                ...CheckboxReflectQuestion
+                ...ReflectChoiceQuestion
+                ...TextQuestion
+                ...RegexQuestion
+                ...ExactTextQuestion
+                ...ReflectTextQuestion
+                ...RichTextQuestion
+                ...NumericQuestion
+                ...UrlQuestion
+                ...MathQuestion
+                ...CodeQuestion
+                ...FileQuestion
+                ...WidgetQuestion
+                ...FillableBlanksQuestion
+                ...OffPlatformQuestion
+                ...TextBlockPart
+              }
+              __typename
+            }
+            __typename
+          }
+          lastSubmission {
+            submission {
+              id
+              instructions {
+                overview {
+                  ...CmlFields
+                  ...HtmlFields
+                  __typename
+                }
+                __typename
+              }
+              parts {
+                ...ChoiceQuestion
+                ...CheckboxQuestion
+                ...CheckboxReflectQuestion
+                ...ReflectChoiceQuestion
+                ...TextQuestion
+                ...RegexQuestion
+                ...ExactTextQuestion
+                ...ReflectTextQuestion
+                ...RichTextQuestion
+                ...NumericQuestion
+                ...UrlQuestion
+                ...MathQuestion
+                ...CodeQuestion
+                ...FileQuestion
+                ...WidgetQuestion
+                ...FillableBlanksQuestion
+                ...OffPlatformQuestion
+                ...TextBlockPart
+              }
+              __typename
+            }
+            __typename
+          }
+          __typename
+        }
+        __typename
+      }
+      __typename
+    }
+    __typename
+  }
+}
+'''
 
 
 def login(sess, cookies_file=None):
@@ -54,10 +462,19 @@ class Crawler:
             raise BadResponseException(d)
         return d
 
-    def __init__(self, *, ts, sess: requests.Session, cookies_file=None):
+    @staticmethod
+    def _graphql(sess: requests.Session, operation, payload):
+        resp = sess.post(URL_GRAPHQL_GATEWAY + '?opname=' + operation, json=payload)
+        resp.raise_for_status()
+        return resp.json()
+
+    def __init__(
+        self, *, ts, sess: requests.Session, cookies_file=None, include_quiz=False
+    ):
         self._ts = ts
         self._sess = sess
         self._cookies_file = cookies_file
+        self._include_quiz = include_quiz
 
         self._loggedin = False
         self._uid: str = None
@@ -127,19 +544,17 @@ class Crawler:
                 typeName = _['contentSummary']['typeName']
                 if typeName in [
                     'exam',
-                    'quiz',
                     'phasedPeer',
                     'discussionPrompt',
                     'gradedProgramming',
                     'programming',
-                    'staffGraded',
                     'ungradedLti',
                     'notebook',
                     'ungradedLab',
                 ]:
                     continue
 
-                if typeName not in ['lecture', 'supplement']:
+                if typeName not in ['lecture', 'supplement'] + QUIZ_TYPE_NAMES:
                     logging.warning(
                         '[crawl_course] unknown typeName=%s\n%s' % (typeName, _)
                     )
@@ -155,6 +570,10 @@ class Crawler:
                     )
                 elif typeName == 'supplement':
                     id2item[_['id']] = CourseMaterialSupplement(
+                        id_=_['id'], name=_['name'], slug=_['slug']
+                    )
+                elif typeName in QUIZ_TYPE_NAMES and self._include_quiz:
+                    id2item[_['id']] = CourseMaterialQuiz(
                         id_=_['id'], name=_['name'], slug=_['slug']
                     )
 
@@ -195,8 +614,10 @@ class Crawler:
                             crawl_lecture(course=course, lecture=item)
                         elif item['type'] == 'Supplement':
                             crawl_supplement(course=course, supplement=item)
+                        elif item['type'] == 'Quiz':
+                            crawl_quiz(course=course, quiz=item)
 
-        def _cook_cml(course, cml: CML):
+        def _cook_cml_parts(course, cml: CML):
             assets, assetIDs, refids = cml.get_resources()
             assets += crawl_assets(assetIDs)
             html = cml.to_html(assets=assets)
@@ -204,6 +625,10 @@ class Crawler:
             for refid in refids:
                 crawl_course_reference(course=course, id_ref=refid)
 
+            return html, assets
+
+        def _cook_cml(course, cml: CML):
+            html, assets = _cook_cml_parts(course, cml)
             return CourseMaterialSupplementItemCML(html=html, assets=assets)
 
         def _crawl_course_ref(course, id_ref=None):
@@ -321,6 +746,177 @@ class Crawler:
                     logging.warning(
                         "[crawl_supplement] unknown typeName=%s\n%s" % (typeName, _)
                     )
+
+        def _graphql_payload(operation, query, variables):
+            return [
+                {
+                    'operationName': operation,
+                    'variables': variables,
+                    'query': query,
+                }
+            ]
+
+        def _graphql_data(d):
+            return d[0]['data']
+
+        def _quiz_state(course, quiz):
+            payload = _graphql_payload(
+                'QueryState',
+                GRAPHQL_QUERY_QUIZ_STATE,
+                {'courseId': course['id'], 'itemId': quiz['id']},
+            )
+            d = Crawler._graphql(sess, 'QueryState', payload)
+            return _graphql_data(d)['SubmissionState']['queryState']
+
+        def _quiz_content_to_html(course, content):
+            if not isinstance(content, dict):
+                return '', []
+
+            if content.get('cmlValue') is not None:
+                cml = CML(content['cmlValue'])
+                return _cook_cml_parts(course, cml)
+
+            if content.get('value') is not None:
+                return content['value'], []
+
+            return '', []
+
+        def _quiz_part_to_html(course, part):
+            html = []
+            assets = []
+
+            schema = part.get('questionSchema') or {}
+            type_name = part.get('__typename')
+
+            prompt_html, prompt_assets = _quiz_content_to_html(
+                course, schema.get('prompt')
+            )
+            if prompt_html:
+                html.append('<div class="quiz-prompt">%s</div>' % prompt_html)
+            assets += prompt_assets
+
+            options = schema.get('options') or []
+            if options:
+                input_type = None
+                if type_name in [
+                    'Submission_CheckboxQuestion',
+                    'Submission_CheckboxReflectQuestion',
+                ]:
+                    input_type = 'checkbox'
+                elif type_name in [
+                    'Submission_MultipleChoiceQuestion',
+                    'Submission_MultipleChoiceReflectQuestion',
+                ]:
+                    input_type = 'radio'
+
+                html.append('<ul class="quiz-options">')
+                for option in options:
+                    option_html, option_assets = _quiz_content_to_html(
+                        course, option.get('display')
+                    )
+                    assets += option_assets
+
+                    input_html = ''
+                    if input_type is not None:
+                        name = html_lib.escape(str(part.get('partId', 'quiz-question')))
+                        attrs = 'type="%s" name="%s"' % (input_type, name)
+                        input_html = '<input %s>' % attrs
+
+                    html.append(
+                        '<li>%s <div class="quiz-option-text">%s</div></li>'
+                        % (input_html, option_html)
+                    )
+                html.append('</ul>')
+
+            title = part.get('title')
+            body = part.get('body')
+            if title and body:
+                body_html, body_assets = _quiz_content_to_html(course, body)
+                assets += body_assets
+                html.append('<h3>%s</h3>%s' % (title, body_html))
+
+            return '\n'.join(html), assets
+
+        def _quiz_draft_to_html(course, draft):
+            html = []
+            assets = []
+
+            instructions = draft.get('instructions') or {}
+            overview = instructions.get('overview')
+            overview_html, overview_assets = _quiz_content_to_html(course, overview)
+            if overview_html:
+                html.append('<div class="quiz-instructions">%s</div>' % overview_html)
+            assets += overview_assets
+
+            for part in draft.get('parts', []):
+                part_html, part_assets = _quiz_part_to_html(course, part)
+                if part_html:
+                    html.append('<div class="quiz-question">%s</div>' % part_html)
+                assets += part_assets
+
+            unique_assets = []
+            seen = set()
+            for asset in assets:
+                if asset['id'] not in seen:
+                    seen.add(asset['id'])
+                    unique_assets.append(asset)
+
+            return '\n'.join(html), unique_assets
+
+        @ts.register_task(
+            priority=PRIO_COURSE_MATERIAL,
+            ttl=3,
+            format_kwargs=lambda _: format_dict(
+                {'course': _['course']['slug'], 'quiz': _['quiz']['slug']}
+            ),
+        )
+        def crawl_quiz(*, course, quiz):
+            # Coursera exposes quiz questions as part of an attempt draft.
+            # If no draft exists yet, start an attempt so that QueryState can
+            # return the question prompts and options.
+            state = _quiz_state(course, quiz)
+            if state.get('__typename') != 'Submission_SubmissionState':
+                logging.warning('[crawl_quiz] failed to get quiz state: %s' % state)
+                return
+
+            attempts = state.get('attempts') or {}
+            draft = None
+            if attempts.get('inProgressAttempt'):
+                draft = attempts['inProgressAttempt'].get('draft')
+            elif attempts.get('lastSubmission'):
+                draft = attempts['lastSubmission'].get('submission')
+
+            if draft is None:
+                start_payload = _graphql_payload(
+                    'Submission_StartAttempt',
+                    GRAPHQL_START_ATTEMPT,
+                    {'courseId': course['id'], 'itemId': quiz['id']},
+                )
+                start_d = Crawler._graphql(
+                    sess, 'Submission_StartAttempt', start_payload
+                )
+                start_result = _graphql_data(start_d)['Submission_StartAttempt']
+                if start_result.get('__typename') != 'Submission_StartAttemptSuccess':
+                    logging.warning(
+                        '[crawl_quiz] failed to start quiz: %s' % start_result
+                    )
+                    return
+
+                state = _quiz_state(course, quiz)
+                attempts = state.get('attempts') or {}
+                if attempts.get('inProgressAttempt'):
+                    draft = attempts['inProgressAttempt'].get('draft')
+                elif attempts.get('lastSubmission'):
+                    draft = attempts['lastSubmission'].get('submission')
+
+            if not draft:
+                logging.warning('[crawl_quiz] no draft for quiz: %s' % quiz['slug'])
+                return
+
+            html, assets = _quiz_draft_to_html(course, draft)
+            quiz['items'].append(
+                CourseMaterialSupplementItemCML(html=html, assets=assets)
+            )
 
         def crawl_assets(ids):
             if len(ids) == 0:
