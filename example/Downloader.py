@@ -14,7 +14,6 @@ from dl_coursera.Downloader import (
     DownloaderUget,
 )
 
-
 _urls = [
     'https://www.jpl.nasa.gov/spaceimages/images/largesize/PIA22569_hires.jpg',
     'https://www.jpl.nasa.gov/spaceimages/images/largesize/PIA22359_hires.jpg',

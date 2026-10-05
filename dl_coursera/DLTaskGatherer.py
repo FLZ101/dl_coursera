@@ -11,8 +11,10 @@ from .markup import render_supplement
 from .resource import load_resource
 from .define import *
 
+
 def _sanitize_filename(s):
     return re.sub(r'[<>:"/\\|?*]', '_', s)
+
 
 def _shorten_slug(x):
     if len(x['slug']) > 40:
@@ -61,7 +63,9 @@ class DLTaskGatherer:
         return os.path.abspath(os.path.join(self._outdir, s))
 
     def _add_dl_task(self, url, s):
-        self._dl_tasks.append({'url': url, 'filename': self._path(s)})
+        self._dl_tasks.append(
+            {'url': url, 'filename': self._path(_sanitize_filename(s))}
+        )
 
     def _add_file_task(self, data, s):
         self._file_tasks.append({'data': data, 'filename': self._path(s)})
@@ -194,6 +198,4 @@ class DLTaskGatherer:
             self._gather_asset(asset)
 
     def _gather_asset(self, asset):
-        self._add_dl_task(
-            asset['url'], self._see(_sanitize_filename(asset['name']))
-        )
+        self._add_dl_task(asset['url'], self._see(asset['name']))
