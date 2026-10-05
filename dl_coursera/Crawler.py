@@ -690,9 +690,10 @@ class Crawler:
             d = Crawler._get(sess, URL_LECTURE_1(course['id'], lecture['id']))
 
             for _ in d['linked']['onDemandVideos.v1']:
-                url_subtitle = _['subtitles'].get('en')
-                if url_subtitle is not None:
-                    url_subtitle = URL_ROOT + url_subtitle
+                subtitles = {}
+                for lang, url_subtitle in (_['subtitles'] or {}).items():
+                    if url_subtitle:
+                        subtitles[lang] = URL_ROOT + url_subtitle
 
                 _ = _['sources']['byResolution']
                 # choose the video with highest resolution
@@ -700,7 +701,7 @@ class Crawler:
                 url_video = url_video['mp4VideoUrl']
 
                 lecture['videos'].append(
-                    Video(url_video=url_video, url_subtitle=url_subtitle)
+                    Video(url_video=url_video, subtitles=subtitles)
                 )
 
             # lecture assets

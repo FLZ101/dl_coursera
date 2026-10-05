@@ -56,6 +56,7 @@ Alternatively, you can download `dl_coursera` as a single executable from [https
    Extra options:
 
    * `--quiz`: include quizzes
+   * `--subtitles <languages>`: comma-separated subtitle language codes without spaces, e.g. `en,zh-CN`. Typical codes: `en`, `zh-CN`, `es`, `fr`, `de`, `pt-BR`, `ja`, `ko`, `ru`, `it`, `ar`, `hi`. Default: download the only available language; otherwise English if available.
 
    ![](doc/run.png)
 

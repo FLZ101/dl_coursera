@@ -21,12 +21,18 @@ def _shorten_slug(x):
         x['slug'] = x['slug'][:40]
 
 
+def _normalize_subtitle_lang(lang):
+    return lang.strip().lower().replace('_', '-')
+
+
 class DLTaskGatherer:
-    def __init__(self, *, soc, outdir):  # "soc" means "sepc or course"
+    def __init__(self, *, soc, outdir, subtitle_langs=None):
+        # "soc" means "sepc or course"
         assert soc['type'] in ['Spec', 'Course']
 
         self._soc = soc
         self._outdir = outdir
+        self._subtitle_langs = subtitle_langs
 
         self._et = ExploringTree()
         self._resource_node = self._et.see('%s/resource' % self._soc['slug'])
@@ -165,8 +171,44 @@ class DLTaskGatherer:
 
     def _gather_video(self, video, i):
         self._add_dl_task(video['url_video'], self._see('%02d@.mp4' % (i + 1)))
-        if video.get('url_subtitle') is not None:
-            self._add_dl_task(video['url_subtitle'], self._see('%02d@.srt' % (i + 1)))
+
+        subtitles = video.get('subtitles')
+        if not subtitles and video.get('url_subtitle') is not None:
+            subtitles = {'en': video['url_subtitle']}
+
+        selected = self._select_subtitles(subtitles or {})
+        for lang, url in selected:
+            if len(selected) == 1:
+                filename = '%02d@.srt' % (i + 1)
+            else:
+                filename = '%02d@.%s.srt' % (i + 1, lang)
+            self._add_dl_task(url, self._see(filename))
+
+    def _select_subtitles(self, subtitles):
+        if not subtitles:
+            return []
+
+        if self._subtitle_langs is None:
+            if len(subtitles) == 1:
+                return list(subtitles.items())
+            if 'en' in subtitles:
+                return [('en', subtitles['en'])]
+            return []
+
+        available = {}
+        for lang, url in subtitles.items():
+            key = _normalize_subtitle_lang(lang)
+            available.setdefault(key, (lang, url))
+
+        selected = []
+        seen = set()
+        for lang in self._subtitle_langs:
+            key = _normalize_subtitle_lang(lang)
+            if key in available and key not in seen:
+                selected.append(available[key])
+                seen.add(key)
+
+        return selected
 
     def _gather_supplement(self, supplement, i):
         _shorten_slug(supplement)
