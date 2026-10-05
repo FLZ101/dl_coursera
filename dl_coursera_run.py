@@ -36,14 +36,6 @@ def _file_pkl_crawl(outdir, slug):
     return os.path.join(_dir_cache(outdir, slug), 'crawl.pkl')
 
 
-def _file_json_gather(outdir, slug):
-    return os.path.join(_dir_cache(outdir, slug), 'gather.json')
-
-
-def _file_json_download_dl_tasks_failed(outdir, slug):
-    return os.path.join(_dir_cache(outdir, slug), 'download.dl_tasks_failed.json')
-
-
 def _file_json_options(outdir, slug):
     return os.path.join(_dir_cache(outdir, slug), 'options.json')
 
@@ -52,27 +44,40 @@ def _options_for_cache(args):
     return {'quiz': args['quiz']}
 
 
+def _parse_subtitles(value):
+    if not value:
+        return None
+    langs = value.split(',')
+    if any(not lang or lang != lang.strip() for lang in langs):
+        raise argparse.ArgumentTypeError(
+            '--subtitles must be comma-separated language codes without spaces'
+        )
+    return langs
+
+
 def _refresh_cache(outdir, slug, args):
-    """Invalidate cached crawl/download state when cache-affecting options change."""
+    """Invalidate the crawl cache when crawl-affecting options change."""
 
     options = _options_for_cache(args)
     options_file = _file_json_options(outdir, slug)
 
+    old_options = None
     if os.path.exists(options_file):
         try:
             with open(options_file, encoding='UTF-8') as ifs:
-                if json.load(ifs) == options:
-                    return
+                old_options = json.load(ifs)
         except (OSError, ValueError):
             pass
 
+    if old_options == options:
+        return
+
     file_pkl = _file_pkl_crawl(outdir, slug)
-    cache_files = [
-        file_pkl,
-        change_ext(file_pkl, 'json'),
-        _file_json_gather(outdir, slug),
-        _file_json_download_dl_tasks_failed(outdir, slug),
-    ]
+    cache_files = {file_pkl, change_ext(file_pkl, 'json')}
+
+    if old_options is not None and old_options.get('quiz') == options.get('quiz'):
+        cache_files = set()
+
     for filename in cache_files:
         try:
             os.remove(filename)
@@ -160,25 +165,13 @@ def crawl(cookies_file, slug, outdir, is_spec, include_quiz=False):
     return soc
 
 
-def gather_dl_tasks(outdir, soc):
-    file_json = _file_json_gather(outdir, soc['slug'])
-    if os.path.exists(file_json):
-        with open(file_json, encoding='UTF-8') as ifs:
-            return json.load(ifs)
-
-    dl_tasks = DLTaskGatherer(soc=soc, outdir=outdir).gather()
-    with open(file_json, 'w', encoding='UTF-8') as ofs:
-        json.dump(dl_tasks, ofs, indent=4)
-
-    return dl_tasks
+def gather_dl_tasks(outdir, soc, subtitle_langs=None):
+    return DLTaskGatherer(
+        soc=soc, outdir=outdir, subtitle_langs=subtitle_langs
+    ).gather()
 
 
-def download(dl_tasks, slug, outdir):
-    file_json = _file_json_download_dl_tasks_failed(outdir, slug)
-    if os.path.exists(file_json):
-        with open(file_json, encoding='UTF-8') as ifs:
-            dl_tasks = json.load(ifs)
-
+def download(dl_tasks):
     if len(dl_tasks) == 0:
         return
 
@@ -198,10 +191,7 @@ def download(dl_tasks, slug, outdir):
 
             ts.start(n_worker=1, hook_done=_hook_done, hook_retry=_hook_retry)
             _cls_downloader = DownloaderBuiltin
-            dl_tasks_failed = _cls_downloader(dl_tasks=dl_tasks, ts=ts).download()
-
-    with open(file_json, 'w', encoding='UTF-8') as ofs:
-        json.dump(dl_tasks_failed, ofs, indent=4)
+            _cls_downloader(dl_tasks=dl_tasks, ts=ts).download()
 
 
 def config_logger(logfile: str):
@@ -242,7 +232,12 @@ def main():
             for the troubleshooting guide.
             """),
     )
-    parser.add_argument('--cookies', required=True, help='path of the cookies file')
+    parser.add_argument(
+        '--cookies',
+        required=True,
+        metavar='COOKIES_FILE',
+        help='path of the cookies file',
+    )
     parser.add_argument(
         '--outdir', default='.', help="the output directory. Default: `.'"
     )
@@ -253,6 +248,17 @@ def main():
         '--quiz',
         action='store_true',
         help='include quizzes',
+    )
+    parser.add_argument(
+        '--subtitles',
+        metavar='LANGUAGES',
+        default=None,
+        type=_parse_subtitles,
+        help=(
+            'comma-separated subtitle language codes without spaces, e.g. en,zh-CN. '
+            'Typical codes: en, zh-CN, es, fr, de, pt-BR, ja, ko, ru, it, ar, hi. '
+            'Default: download the only available language; otherwise English if available.'
+        ),
     )
     parser.add_argument(
         '--version', action='version', version='%%(prog)s %s' % dl_coursera.app_version
@@ -278,9 +284,9 @@ def main():
 
     soc = crawl(args['cookies'], slug, outdir, args['spec'], args['quiz'])
 
-    dl_tasks = gather_dl_tasks(outdir, soc)
+    dl_tasks = gather_dl_tasks(outdir, soc, args['subtitles'])
 
-    download(dl_tasks, slug, outdir)
+    download(dl_tasks)
 
     sys.stderr.flush()
     print('Done :-)')

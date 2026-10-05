@@ -242,12 +242,12 @@ class CourseMaterialSupplementItemCML(CourseMaterialSupplementItem):
 
 
 class Video(MyDict):
-    def __init__(self, url_video, url_subtitle=None):
+    def __init__(self, url_video, subtitles=None):
         super().__init__()
 
         self['url_video'] = url_video
-        if url_subtitle is not None:
-            self['url_subtitle'] = url_subtitle
+        if subtitles:
+            self['subtitles'] = subtitles
 
 
 class Asset(MyDict):

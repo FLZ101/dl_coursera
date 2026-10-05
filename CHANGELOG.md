@@ -2,6 +2,7 @@
 
 * (01) Not check userId in cookies
 * (02) Supports downloading quizzes
+* (03) Supports selecting subtitle languages with `--subtitles`
 
 ## 1.0.1
 
