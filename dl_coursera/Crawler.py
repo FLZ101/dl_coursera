@@ -372,7 +372,8 @@ class Crawler:
                     break
 
             if not self._uid:
-                raise UserIDNotFoundException()
+                logging.warning("UserID not found in cookies, but ignoring as it seems unused.")
+                # raise UserIDNotFoundException()
 
     def crawl(self, *, slug, is_spec):
         if not self._loggedin:

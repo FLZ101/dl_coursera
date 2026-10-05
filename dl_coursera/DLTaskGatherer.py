@@ -2,6 +2,7 @@ import os
 import zipfile
 import io
 import logging
+import re
 
 from .lib.ExploringTree import ExploringTree
 
@@ -10,6 +11,8 @@ from .markup import render_supplement
 from .resource import load_resource
 from .define import *
 
+def _sanitize_filename(s):
+    return re.sub(r'[<>:"/\\|?*]', '_', s)
 
 def _shorten_slug(x):
     if len(x['slug']) > 40:
@@ -191,4 +194,6 @@ class DLTaskGatherer:
             self._gather_asset(asset)
 
     def _gather_asset(self, asset):
-        self._add_dl_task(asset['url'], self._see(asset['name']))
+        self._add_dl_task(
+            asset['url'], self._see(_sanitize_filename(asset['name']))
+        )
