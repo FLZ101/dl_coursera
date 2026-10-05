@@ -44,7 +44,7 @@ Alternatively, you can download `dl_coursera` as a single executable from [https
    To download a specialization:
 
    ```
-   dl_coursera --spec --cookies path_of_the_cookies_file --outdir output_directory slug
+   dl_coursera --cookies path_of_the_cookies_file --outdir output_directory --spec slug
    ```
 
    To download a course:

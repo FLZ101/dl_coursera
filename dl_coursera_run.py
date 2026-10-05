@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 import dl_coursera
 
-from dl_coursera.lib.misc import change_ext, get_latest_app_version
+from dl_coursera.lib.misc import change_ext, get_latest_app_version, get_current_app_version
 from dl_coursera.lib.TaskScheduler import TaskScheduler
 from dl_coursera.Crawler import Crawler, login
 from dl_coursera.DLTaskGatherer import DLTaskGatherer
@@ -211,10 +211,10 @@ def main():
     args = vars(parser.parse_args())
 
     latest_version = get_latest_app_version()
-    if latest_version > dl_coursera.app_version:
+    current_version = get_current_app_version()
+    if latest_version > current_version:
         msg = textwrap.dedent(
             f"A newer version {latest_version} is available.",
-            file=sys.stderr,
         )
         print(msg, file=sys.stderr, flush=True)
 
