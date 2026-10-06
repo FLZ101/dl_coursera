@@ -929,7 +929,7 @@ class Crawler:
             for _ in d['elements']:
                 id_ = _['id']
                 url = _['url']['url']
-                name = _asset_name(_['name'], _['fileExtension'])
+                name = _asset_name(_['name'], _.get('fileExtension', ''))
                 assets.append(Asset(id_=id_, url=url, name=name))
 
             if len(assets) != len(ids):
@@ -939,6 +939,9 @@ class Crawler:
             return assets
 
         def _asset_name(name, fileExtension):
+            if not fileExtension:
+                return name
+
             fileExtension = '.' + fileExtension
             if not name.endswith(fileExtension):
                 name += fileExtension
