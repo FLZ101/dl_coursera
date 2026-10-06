@@ -16,7 +16,7 @@ on:
 
 jobs:
   build-and-test:
-    uses: FLZ101/dl_coursera/.github/workflows/test.yml@master
+    uses: ./.github/workflows/test.yml
     with:
       os: ubuntu-latest
       python-version: "3.12"
