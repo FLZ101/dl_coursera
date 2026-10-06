@@ -4,8 +4,8 @@ The project uses a modern `pyproject.toml` build and installs its runtime depend
 from there. To work on it locally:
 
 ```
-$ python -m venv .venv
-$ source .venv/bin/activate
+$ python -m venv venv
+$ source venv/bin/activate
 $ python -m pip install -e ".[dev]"
 $ pre-commit install
 ```
