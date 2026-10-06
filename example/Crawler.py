@@ -1,6 +1,4 @@
-import os
 import logging
-import random
 
 import requests
 
@@ -14,7 +12,7 @@ def test_crawler():
         crawler = Crawler(ts=ts, sess=sess)
         crawler.login()
 
-        _ = [
+        courses = [
             '20cnwm',
             'advanced-modeling',
             'algorithms-part1',
@@ -36,7 +34,8 @@ def test_crawler():
             'understanding-arguments',
             'yoga',
         ]
-        crawler.crawl(slug=random.choice(_), is_spec=False)
+        for _ in courses:
+            crawler.crawl(slug=_, is_spec=False)
 
 
 if __name__ == '__main__':
