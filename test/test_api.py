@@ -31,6 +31,10 @@ class TestUnauthorized(unittest.TestCase):
             self.assertEqual(d['errorCode'], 'Not Authorized')
 
 
+@unittest.skipIf(
+    not os.environ.get('DL_COURSERA_COOKIES_BASE64'),
+    'DL_COURSERA_COOKIES_BASE64 is not set',
+)
 class TestApi(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
