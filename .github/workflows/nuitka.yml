@@ -14,32 +14,56 @@ jobs:
         # https://github.com/actions/runner-images?tab=readme-ov-file#available-images
         os: [ubuntu-latest, windows-latest, macos-latest]
 
+    env:
+      # https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#secrets-context
+      DL_COURSERA_COOKIES_BASE64: ${{ secrets.DL_COURSERA_COOKIES_BASE64 }}
+
     steps:
       # https://github.com/actions/checkout
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
-      with:
-        python-version: 3.12
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.12
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install -r requirements-deploy.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+          pip install -r requirements-deploy.txt
 
-    - name: Generate artifacts
-      run: |
-        python dl_coursera_nuitka.py
+      - name: Run git hooks
+        run: pre-commit run --all-files
 
-    # https://docs.github.com/en/actions/tutorials/store-and-share-data
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: dl_coursera-${{ matrix.os }}
-        path: |
-          __data/*.zip
-        retention-days: 13
-        compression-level: 0
-        if-no-files-found: error
+      # https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-variables#detecting-the-operating-system
+
+      - run: |
+          echo "PYTHONPATH=$(pwd):$PYTHONPATH" >> $GITHUB_ENV
+        if: runner.os != 'Windows'
+
+      # PYTHONPATH ending with ; might cause errors
+      - run: |
+          echo PYTHONPATH=%cd% >> %GITHUB_ENV%
+        if: runner.os == 'Windows'
+
+      - name: Run tests
+        run: |
+          python -m unittest -v
+          python example/Crawler.py
+
+      - name: Generate artifacts
+        run: |
+          python dl_coursera_nuitka.py
+
+      # https://docs.github.com/en/actions/tutorials/store-and-share-data
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dl_coursera-${{ matrix.os }}
+          path: |
+            __data/*.zip
+          retention-days: 13
+          compression-level: 0
+          if-no-files-found: error

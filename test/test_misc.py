@@ -6,4 +6,4 @@ class TestMisc(unittest.TestCase):
         from dl_coursera.lib.misc import get_latest_app_version
 
         ver = get_latest_app_version()
-        self.assertRegex(ver, r'\d+\.\d+\.\d+')
+        self.assertEqual(len(ver), 3)

@@ -17,10 +17,6 @@ jobs:
     # https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/deploy-to-environment
     environment: Test
 
-    env:
-      # https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#secrets-context
-      DL_COURSERA_COOKIES_BASE64: ${{ secrets.DL_COURSERA_COOKIES_BASE64 }}
-
     defaults:
       run:
         shell: ${{ startsWith(inputs.os, 'windows') && 'cmd' || 'bash' }}
@@ -40,8 +36,8 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
 
-      - name: Check code style
-        run: black --diff .
+      - name: Run git hooks
+        run: pre-commit run --all-files
 
       # https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-variables#detecting-the-operating-system
 
@@ -57,4 +53,3 @@ jobs:
       - name: Run tests
         run: |
           python -m unittest -v
-          python example/Crawler.py
