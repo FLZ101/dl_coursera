@@ -19,11 +19,15 @@ jobs:
       # https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#secrets-context
       DL_COURSERA_COOKIES_BASE64: ${{ secrets.DL_COURSERA_COOKIES_BASE64 }}
 
+    defaults:
+      run:
+        shell: ${{ startsWith(matrix.os, 'windows') && 'cmd' || 'bash' }}
+
     steps:
       # https://github.com/actions/checkout
       - uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v3
         with:
           python-version: 3.12
