@@ -1,6 +1,0 @@
-setuptools
-wheel
-twine
-Nuitka
-build
-cryptography>=42.0.0

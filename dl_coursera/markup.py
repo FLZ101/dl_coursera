@@ -81,7 +81,7 @@ class CML:
     def get_resources(
         self,
         *,
-        _pat_ref=re.compile(r'%s/learn/[^/]+/resources/([0-9a-zA-Z-]+)' % URL_ROOT)
+        _pat_ref=re.compile(r'%s/learn/[^/]+/resources/([0-9a-zA-Z-]+)' % URL_ROOT),
     ):
         if self._assets is None:
             self._assets = []

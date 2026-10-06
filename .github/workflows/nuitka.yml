@@ -28,16 +28,14 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v5
         with:
           python-version: 3.12
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -r requirements-dev.txt
-          pip install -r requirements-deploy.txt
+          python -m pip install -e ".[dev,deploy]"
 
       - name: Run git hooks
         run: pre-commit run --all-files

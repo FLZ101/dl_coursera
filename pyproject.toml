@@ -1,3 +1,81 @@
-# https://black.readthedocs.io/en/stable/usage_and_configuration/the_basics.html#configuration-format
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dl_coursera"
+dynamic = ["version"]
+description = "A simple, fast, and reliable Coursera crawling & downloading tool"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE.txt"]
+authors = [
+    { name = "fengleizZZ", email = "fenglei4518@hotmail.com" },
+]
+keywords = [
+    "dl_coursera",
+    "coursera",
+    "education",
+    "MOOC",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Education",
+]
+dependencies = [
+    "beautifulsoup4>=4.13.4",
+    "Jinja2>=3.1.6",
+    "lxml>=6.0.0",
+    "requests>=2.32.4",
+    "tqdm>=4.67.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pre-commit>=3.7.0",
+    "black>=24.8.0",
+]
+deploy = [
+    "build",
+    "cryptography>=42.0.0",
+    "Nuitka",
+    "setuptools",
+    "twine",
+    "wheel",
+]
+
+[project.urls]
+Homepage = "https://github.com/FLZ101/dl_coursera"
+Repository = "https://github.com/FLZ101/dl_coursera"
+Issues = "https://github.com/FLZ101/dl_coursera/issues"
+Changelog = "https://github.com/FLZ101/dl_coursera/blob/master/CHANGELOG.md"
+
+[project.scripts]
+dl_coursera = "dl_coursera_run:main"
+
+[tool.setuptools]
+py-modules = ["dl_coursera_run"]
+
+[tool.setuptools.dynamic]
+version = { attr = "dl_coursera.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["dl_coursera*"]
+
+[tool.setuptools.package-data]
+"dl_coursera.resource" = ["*.zip", "template/*"]
+
 [tool.black]
 skip-string-normalization = true

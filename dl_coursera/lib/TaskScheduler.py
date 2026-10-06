@@ -150,7 +150,7 @@ class TaskScheduler:
         WorkerFactory=threading.Thread,
         hook_add=None,
         hook_done=None,
-        hook_retry=None
+        hook_retry=None,
     ):
         n = math.floor(math.log10(n_worker)) + 1
         for i in range(1, n_worker + 1):
