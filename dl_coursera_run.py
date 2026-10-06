@@ -255,7 +255,7 @@ def main():
         default=None,
         type=_parse_subtitles,
         help=(
-            'comma-separated subtitle language codes without spaces, e.g. en,zh-CN. '
+            'comma-separated subtitle language codes without spaces, e.g. `en,zh-CN\'. '
             'Typical codes: en, zh-CN, es, fr, de, pt-BR, ja, ko, ru, it, ar, hi. '
             'Default: download the only available language; otherwise English if available.'
         ),
