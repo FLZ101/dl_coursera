@@ -9,7 +9,7 @@
 
 ## Install
 
-Python **⩾3.12** is required.
+Python **⩾3.10** is required.
 
 Install the `dl_coursera` package in a virtual environment.
 
@@ -83,3 +83,7 @@ Alternatively, you can download `dl_coursera` as a single executable from [https
 6. Visit [the issues page](https://github.com/FLZ101/dl_coursera/issues?q=is:issue). You may find a solution if others has encountered similar issues.
 
    Or you could create a new issue describing what is going wrong and the steps to reproduce it. Don't forget to attach the file `<output-directory>/<slug>/.cache/main.log` if it exists.
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/chart?repos=flz101/dl_coursera&type=date&legend=top-left)](https://www.star-history.com/?repos=flz101%2Fdl_coursera&type=date&legend=top-left)
