@@ -4,6 +4,7 @@
 * (02) Supports downloading quizzes
 * (03) Supports selecting subtitle languages with `--subtitles`
 * (04) Generates a `playlist.m3u` file for each course
+* (05) Signs Windows executables with a self-signed certificate generated during the Nuitka build
 
 ## 1.0.1
 

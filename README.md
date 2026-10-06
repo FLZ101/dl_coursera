@@ -9,7 +9,7 @@
 
 ## Install
 
-Python **⩾3.8** is required.
+Python **⩾3.12** is required.
 
 Install the `dl_coursera` package in a virtual environment.
 
