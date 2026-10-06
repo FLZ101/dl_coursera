@@ -39,6 +39,7 @@ class DLTaskGatherer:
 
         self._dl_tasks = []
         self._file_tasks = []
+        self._playlist_entries = []
 
     def gather(self):
         (self._gather_spec if self._soc['type'] == 'Spec' else self._gather_course)(
@@ -69,9 +70,7 @@ class DLTaskGatherer:
         return os.path.abspath(os.path.join(self._outdir, s))
 
     def _add_dl_task(self, url, s):
-        self._dl_tasks.append(
-            {'url': url, 'filename': self._path(_sanitize_filename(s))}
-        )
+        self._dl_tasks.append({'url': url, 'filename': self._path(s)})
 
     def _add_file_task(self, data, s):
         self._file_tasks.append({'data': data, 'filename': self._path(s)})
@@ -96,10 +95,13 @@ class DLTaskGatherer:
         with self._et:
             self._down(course['slug'], i)
 
+            self._playlist_entries = []
             self._gather_course_references(course)
 
             for _i, module in enumerate(course['modules']):
                 self._gather_module(module, _i)
+
+            self._gather_playlist()
 
     def _gather_course_references(self, course):
         with self._et:
@@ -164,13 +166,15 @@ class DLTaskGatherer:
             self._down(lecture['slug'], i)
 
             for _i, video in enumerate(lecture['videos']):
-                self._gather_video(video, _i)
+                self._gather_video(video, _i, lecture['name'])
 
             for asset in lecture['assets']:
                 self._gather_asset(asset)
 
-    def _gather_video(self, video, i):
-        self._add_dl_task(video['url_video'], self._see('%02d@.mp4' % (i + 1)))
+    def _gather_video(self, video, i, title=None):
+        video_node = self._et.see('%02d@.mp4' % (i + 1))
+        self._add_dl_task(video['url_video'], video_node.abspath()[1:])
+        self._playlist_entries.append((video_node, title))
 
         subtitles = video.get('subtitles')
         if not subtitles and video.get('url_subtitle') is not None:
@@ -183,6 +187,20 @@ class DLTaskGatherer:
             else:
                 filename = '%02d@.%s.srt' % (i + 1, lang)
             self._add_dl_task(url, self._see(filename))
+
+    def _gather_playlist(self):
+        if not self._playlist_entries:
+            return
+
+        lines = ['#EXTM3U']
+        for node, title in self._playlist_entries:
+            if title:
+                title = ' '.join(str(title).split())
+                lines.append('#EXTINF:-1,%s' % title)
+            lines.append(self._et.relpathTo(node))
+
+        data = ('\n'.join(lines) + '\n').encode('UTF-8')
+        self._add_file_task(data, self._see('playlist.m3u'))
 
     def _select_subtitles(self, subtitles):
         if not subtitles:
@@ -245,4 +263,4 @@ class DLTaskGatherer:
             self._gather_asset(asset)
 
     def _gather_asset(self, asset):
-        self._add_dl_task(asset['url'], self._see(asset['name']))
+        self._add_dl_task(asset['url'], self._see(_sanitize_filename(asset['name'])))

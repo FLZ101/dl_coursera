@@ -3,6 +3,7 @@
 * (01) Not check userId in cookies
 * (02) Supports downloading quizzes
 * (03) Supports selecting subtitle languages with `--subtitles`
+* (04) Generates a `playlist.m3u` file for each course
 
 ## 1.0.1
 
