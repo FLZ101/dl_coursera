@@ -135,7 +135,7 @@ def main():
     if platform.system() == 'Windows':
         _sign_windows_executable(os.path.join(outdir, exe))
     shutil.make_archive(
-        base_name=outdir, format="zip", root_dir='.', base_dir=outdir, verbose=True
+        base_name=outdir, format="zip", root_dir=outdir, base_dir='.', verbose=True
     )
 
 
