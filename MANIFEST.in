@@ -1,3 +1,9 @@
-include requirements*.txt
 include LICENSE.txt
 include README.md
+include DEVELOPMENT.md
+include CHANGELOG.md
+include pyproject.toml
+recursive-include dl_coursera/resource *
+recursive-include test *.py
+global-exclude *.py[cod]
+prune **/__pycache__

@@ -10,6 +10,9 @@ on:
       - ".pre-commit-config.yaml"
       - ".github/workflows/test-single.yml"
       - ".github/workflows/test.yml"
+      - ".github/workflows/publish.yml"
+      - "pyproject.toml"
+      - "MANIFEST.in"
 
 jobs:
   build-and-test:

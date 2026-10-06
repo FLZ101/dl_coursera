@@ -1,2 +1,3 @@
 app_name = 'dl_coursera'
-app_version = '1.1.0'
+__version__ = '1.1.0'
+app_version = __version__

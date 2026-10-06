@@ -26,15 +26,14 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Python ${{ inputs.python-version }}
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ inputs.python-version }}
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -r requirements-dev.txt
+          python -m pip install -e ".[dev]"
 
       - name: Run git hooks
         run: pre-commit run --all-files

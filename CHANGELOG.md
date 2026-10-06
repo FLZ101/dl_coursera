@@ -5,6 +5,7 @@
 * (03) Supports selecting subtitle languages with `--subtitles`
 * (04) Generates a `playlist.m3u` file for each course
 * (05) Signs Windows executables with a self-signed certificate generated during the Nuitka build
+* (06) Modernizes packaging with a PEP 621 `pyproject.toml`, trusted-publishing workflow, and removes legacy requirements files
 
 ## 1.0.1
 
