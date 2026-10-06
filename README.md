@@ -53,6 +53,10 @@ Alternatively, you can download `dl_coursera` as a single executable from [https
    dl_coursera --cookies path_of_the_cookies_file --outdir output_directory slug
    ```
 
+   For each course, a `playlist.m3u` file is generated in the course directory. It lists the downloaded videos and can be opened with VLC, mpv, or mplayer.
+
+   ---
+
    Extra options:
 
    * `--quiz`: include quizzes
