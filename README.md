@@ -1,11 +1,13 @@
 [![](https://img.shields.io/pypi/v/dl_coursera)](https://pypi.org/project/dl-coursera/)[![](https://github.com/FLZ101/dl_coursera/actions/workflows/test-single.yml/badge.svg)](https://github.com/FLZ101/dl_coursera/actions/workflows/test-single.yml)[![](https://img.shields.io/github/license/FLZ101/dl_coursera)](https://github.com/FLZ101/dl_coursera/blob/master/LICENSE.txt)[![](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-## Todo
+## Features
 
-- [x] Lectures (videos, subtitles, slides)
-- [x] Reading materials
-- [ ] Jupyter notebooks
-- [x] Quizzes
+- [x] Download lectures (videos, subtitles, slides)
+- [x] Download reading materials
+- [x] Download quizzes
+- [ ] Download jupyter notebooks
+- [x] Generate a playlist for each course
+- [x] Select subtitle language(s)
 
 ## Install
 
@@ -53,7 +55,7 @@ Alternatively, you can download `dl_coursera` as a single executable from [https
    dl_coursera --cookies path_of_the_cookies_file --outdir output_directory slug
    ```
 
-   For each course, a `playlist.m3u` file is generated in the course directory. It lists the downloaded videos and can be opened with VLC, mpv, or mplayer.
+   For each course, a `playlist.m3u` file is generated in the course directory. It lists the downloaded videos and can be opened with VLC, mpv, or other video players.
 
    ---
 
