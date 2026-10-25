@@ -44,13 +44,13 @@ def _options_for_cache(args):
     return {'quiz': args['quiz']}
 
 
-def _parse_subtitles(value):
+def _parse_langs(value, flag='--subtitles'):
     if not value:
         return None
     langs = value.split(',')
     if any(not lang or lang != lang.strip() for lang in langs):
         raise argparse.ArgumentTypeError(
-            '--subtitles must be comma-separated language codes without spaces'
+            f'{flag} must be comma-separated language codes without spaces'
         )
     return langs
 
@@ -88,14 +88,14 @@ def _refresh_cache(outdir, slug, args):
         json.dump(options, ofs, indent=4)
 
 
-def crawl(cookies_file, slug, outdir, is_spec, include_quiz=False):
+def crawl(cookies_file=None, cookie_string=None, slug=None, outdir=None, is_spec=False, include_quiz=False):
     file_pkl = _file_pkl_crawl(outdir, slug)
     if os.path.exists(file_pkl):
         with open(file_pkl, 'rb') as ifs:
             return pickle.load(ifs)
 
     with requests.Session() as sess:
-        login(sess, cookies_file=cookies_file)
+        login(sess, cookies_file=cookies_file, cookie_string=cookie_string)
 
         # Check whether the specialization/course exists
 
@@ -151,6 +151,7 @@ def crawl(cookies_file, slug, outdir, is_spec, include_quiz=False):
                 ts=ts,
                 sess=sess,
                 cookies_file=cookies_file,
+                cookie_string=cookie_string,
                 include_quiz=include_quiz,
             )
             soc = crawler.crawl(slug=slug, is_spec=is_spec)
@@ -165,9 +166,9 @@ def crawl(cookies_file, slug, outdir, is_spec, include_quiz=False):
     return soc
 
 
-def gather_dl_tasks(outdir, soc, subtitle_langs=None):
+def gather_dl_tasks(outdir, soc, subtitle_langs=None, transcript_langs=None, no_video=False):
     return DLTaskGatherer(
-        soc=soc, outdir=outdir, subtitle_langs=subtitle_langs
+        soc=soc, outdir=outdir, subtitle_langs=subtitle_langs, transcript_langs=transcript_langs, no_video=no_video
     ).gather()
 
 
@@ -234,9 +235,17 @@ def main():
     )
     parser.add_argument(
         '--cookies',
-        required=True,
+        required=False,
+        default=None,
         metavar='COOKIES_FILE',
-        help='path of the cookies file',
+        help='path of the cookies file (Netscape format)',
+    )
+    parser.add_argument(
+        '--cookie',
+        required=False,
+        default=None,
+        metavar='COOKIE_VALUE',
+        help='raw cookie header value (semicolon-separated name=value pairs)',
     )
     parser.add_argument(
         '--outdir', default='.', help="the output directory. Default: `.'"
@@ -253,7 +262,7 @@ def main():
         '--subtitles',
         metavar='LANGUAGES',
         default=None,
-        type=_parse_subtitles,
+        type=lambda v: _parse_langs(v, '--subtitles'),
         help=(
             'comma-separated subtitle language codes without spaces, e.g. `en,zh-CN\'. '
             'Typical codes: en, zh-CN, es, fr, de, pt-BR, ja, ko, ru, it, ar, hi. '
@@ -261,11 +270,57 @@ def main():
         ),
     )
     parser.add_argument(
+        '--transcripts',
+        metavar='LANGUAGES',
+        default=None,
+        type=lambda v: _parse_langs(v, '--transcripts'),
+        help=(
+            'comma-separated transcript language codes without spaces, e.g. `en,zh-CN\'. '
+            'Downloads plain text transcript files (.txt) independently of subtitles. '
+            'When combined with --subtitles for the same language, both .srt and .txt files are downloaded.'
+        ),
+    )
+    parser.add_argument(
+        '--no-video',
+        dest='no_video',
+        action='store_true',
+        default=True,
+        help='skip downloading video files (subtitles and other content are still downloaded) [default]',
+    )
+    parser.add_argument(
+        '--video',
+        dest='no_video',
+        action='store_false',
+        help='download video files',
+    )
+    parser.add_argument(
+        '--dryrun',
+        action='store_false',
+        dest='dryrun',
+        default=True,
+        help='crawl and list download tasks without actually downloading files [default]',
+    )
+    parser.add_argument(
+        '--no-dryrun',
+        action='store_true',
+        dest='dryrun',
+        help='actually download files (same as --download)',
+    )
+    parser.add_argument(
+        '--download',
+        action='store_true',
+        default=False,
+        help='actually download files',
+    )
+    parser.add_argument(
         '--version', action='version', version='%%(prog)s %s' % dl_coursera.app_version
     )
     parser.add_argument('slug', help='slug of the specialization/course')
 
     args = vars(parser.parse_args())
+
+    if args['cookies'] is None and args['cookie'] is None:
+        parser.error('at least one of --cookies or --cookie is required')
 
     latest_version = get_latest_app_version()
     current_version = get_current_app_version()
@@ -282,11 +337,26 @@ def main():
     config_logger(_file_log(outdir, slug))
     _refresh_cache(outdir, slug, args)
 
-    soc = crawl(args['cookies'], slug, outdir, args['spec'], args['quiz'])
+    soc = crawl(
+        cookies_file=args['cookies'],
+        cookie_string=args['cookie'],
+        slug=slug,
+        outdir=outdir,
+        is_spec=args['spec'],
+        include_quiz=args['quiz'],
+    )
 
-    dl_tasks = gather_dl_tasks(outdir, soc, args['subtitles'])
+    dl_tasks = gather_dl_tasks(outdir, soc, args['subtitles'], args['transcripts'], args['no_video'])
 
-    download(dl_tasks)
+    if args['download'] or not args['dryrun']:
+        download(dl_tasks)
+    else:
+        paths = sorted(
+            os.path.relpath(task['filename'], outdir) for task in dl_tasks
+        )
+        for p in paths:
+            print(f'  {p}')
+        print(f'Dry run: {len(dl_tasks)} file(s) would be downloaded.')
 
     sys.stderr.flush()
     print('Done :-)')

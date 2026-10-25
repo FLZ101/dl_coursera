@@ -6,6 +6,7 @@ import html as html_lib
 from http.cookiejar import MozillaCookieJar
 
 import requests
+from requests.cookies import RequestsCookieJar
 
 from .define import *
 
@@ -424,23 +425,53 @@ query QueryState($courseId: ID!, $itemId: ID!) {
 '''
 
 
-def login(sess, cookies_file=None):
-    if cookies_file is None:
-        # the env should contain $(base64 -w 0 cookies.txt)
-        cookies_base64 = os.environ.get('DL_COURSERA_COOKIES_BASE64')
-        assert cookies_base64
+def login(sess, cookies_file=None, cookie_string=None):
+    # Priority: cookie_string > cookies_file > DL_COURSERA_COOKIE env >
+    # DL_COURSERA_COOKIES_BASE64 env
 
-        cookies = base64.standard_b64decode(cookies_base64)
-
-        with TmpFile() as tmpfile:
-            with open(tmpfile, 'wb') as ofs:
-                ofs.write(cookies)
-
-            cj = MozillaCookieJar()
-            cj.load(tmpfile)
-    else:
+    if cookie_string is not None:
+        # Parse raw cookie header string (semicolon-separated name=value pairs)
+        cookie_string = cookie_string.strip()
+        # Strip optional "Cookie: " prefix
+        if cookie_string.lower().startswith('cookie: '):
+            cookie_string = cookie_string[8:]
+        cj = RequestsCookieJar()
+        for pair in cookie_string.split(';'):
+            pair = pair.strip()
+            if not pair:
+                continue
+            name, _, value = pair.partition('=')
+            cj.set(name.strip(), value.strip())
+    elif cookies_file is not None:
         cj = MozillaCookieJar()
         cj.load(cookies_file)
+    else:
+        # Check for raw cookie string in environment
+        env_cookie = os.environ.get('DL_COURSERA_COOKIE')
+        if env_cookie is not None:
+            cookie_string = env_cookie.strip()
+            if cookie_string.lower().startswith('cookie: '):
+                cookie_string = cookie_string[8:]
+            cj = RequestsCookieJar()
+            for pair in cookie_string.split(';'):
+                pair = pair.strip()
+                if not pair:
+                    continue
+                name, _, value = pair.partition('=')
+                cj.set(name.strip(), value.strip())
+        else:
+            # the env should contain $(base64 -w 0 cookies.txt)
+            cookies_base64 = os.environ.get('DL_COURSERA_COOKIES_BASE64')
+            assert cookies_base64
+
+            cookies = base64.standard_b64decode(cookies_base64)
+
+            with TmpFile() as tmpfile:
+                with open(tmpfile, 'wb') as ofs:
+                    ofs.write(cookies)
+
+                cj = MozillaCookieJar()
+                cj.load(tmpfile)
 
     sess.cookies.update(cj)
 
@@ -469,11 +500,18 @@ class Crawler:
         return resp.json()
 
     def __init__(
-        self, *, ts, sess: requests.Session, cookies_file=None, include_quiz=False
+        self,
+        *,
+        ts,
+        sess: requests.Session,
+        cookies_file=None,
+        cookie_string=None,
+        include_quiz=False,
     ):
         self._ts = ts
         self._sess = sess
         self._cookies_file = cookies_file
+        self._cookie_string = cookie_string
         self._include_quiz = include_quiz
 
         self._loggedin = False
@@ -695,13 +733,18 @@ class Crawler:
                     if url_subtitle:
                         subtitles[lang] = URL_ROOT + url_subtitle
 
+                transcripts = {}
+                for lang, url_transcript in (_['subtitlesTxt'] or {}).items():
+                    if url_transcript:
+                        transcripts[lang] = URL_ROOT + url_transcript
+
                 _ = _['sources']['byResolution']
                 # choose the video with highest resolution
                 url_video = _[sorted(_.keys())[-1]]
                 url_video = url_video['mp4VideoUrl']
 
                 lecture['videos'].append(
-                    Video(url_video=url_video, subtitles=subtitles)
+                    Video(url_video=url_video, subtitles=subtitles, transcripts=transcripts)
                 )
 
             # lecture assets
@@ -949,7 +992,7 @@ class Crawler:
 
     def login(self):
         if not self._loggedin:
-            login(self._sess, self._cookies_file)
+            login(self._sess, self._cookies_file, self._cookie_string)
             self._loggedin = True
 
     def crawl(self, *, slug, is_spec):

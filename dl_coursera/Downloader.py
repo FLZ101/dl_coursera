@@ -54,11 +54,17 @@ class DownloaderTS(Downloader):
     def _dl(self, *, url, filename):
         pass
 
+    def _download_one(self, *, url, filename):
+        if os.path.exists(filename):
+            logging.info('file exists, skipping: %s' % filename)
+            return
+        self._dl(url=url, filename=filename)
+
     def download(self):
         self.check()
 
         for _ in self._dl_tasks:
-            self._dl(url=_['url'], filename=_['filename'])
+            self._download_one(url=_['url'], filename=_['filename'])
 
         failures = self._ts.wait()
         return [_1.kwargs for _1, _2 in failures]
@@ -66,6 +72,10 @@ class DownloaderTS(Downloader):
 
 class DownloaderBuiltin(DownloaderTS):
     def _dl(self, *, url, filename):
+        if os.path.exists(filename):
+            logging.info('file exists, skipping: %s' % filename)
+            return
+
         os.makedirs(os.path.dirname(filename), exist_ok=True)
 
         with requests.get(url, stream=True) as r:
@@ -96,6 +106,9 @@ class CheckExeMixIn:
 
 class DownloaderSubprocess(CheckExeMixIn, DownloaderTS):
     def _dl(self, *, url, filename):
+        if os.path.exists(filename):
+            logging.info('file exists, skipping: %s' % filename)
+            return
         subprocess.run(
             self._cmdline(url, filename),
             stdout=subprocess.DEVNULL,
@@ -184,6 +197,9 @@ class DownloaderUget(CheckExeMixIn, Downloader):
         for _ in self._dl_tasks:
             _url = _['url']
             _filename = _['filename']
+            if os.path.exists(_filename):
+                logging.info('file exists, skipping: %s' % _filename)
+                continue
             cmdline = [
                 self._exe(),
                 '--quiet',
@@ -216,6 +232,9 @@ class DownloaderAria2_rpc(Downloader):
         for _ in self._dl_tasks:
             _url = _['url']
             _filename = _['filename']
+            if os.path.exists(_filename):
+                logging.info('file exists, skipping: %s' % _filename)
+                continue
             _args = [
                 [_url],
                 {
