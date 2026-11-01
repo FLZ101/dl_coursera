@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "dl_coursera"
 dynamic = ["version"]
-description = "A simple, fast, and reliable Coursera crawling & downloading tool"
+description = "A simple, fast and reliable Coursera downloader"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
